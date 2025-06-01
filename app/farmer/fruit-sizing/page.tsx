@@ -1,31 +1,12 @@
-"use client"
-
-import { useReports } from "@/hooks/useReports"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
-import { Ruler, ImageIcon, Check, Download } from "lucide-react"
+import { Ruler, ImageIcon, Check } from "lucide-react"
 import { ImageUploader } from "@/components/image-uploader"
 
 export default function FruitSizingPage() {
-  const { downloadReport } = useReports()
-
-  const handleDownloadReport = () => {
-    const reportData = {
-      date: "June 1, 2025",
-      time: "14:36:47",
-      grade: "A",
-      avgDiameter: 8,
-      avgWeight: 150,
-      colorUniformity: 95,
-      defects: "None",
-      harvestReady: true,
-    }
-    downloadReport("fruit-sizing", reportData)
-  }
-
   return (
     <div className="container mx-auto py-6">
       <div className="flex items-center justify-between">
@@ -136,10 +117,7 @@ export default function FruitSizingPage() {
           </div>
         </CardContent>
         <CardFooter className="flex justify-between">
-          <Button variant="outline" onClick={handleDownloadReport}>
-            <Download className="mr-2 h-4 w-4" />
-            Download Report
-          </Button>
+          <Button variant="outline">Download Report</Button>
           <Button>Add to Inventory</Button>
         </CardFooter>
       </Card>

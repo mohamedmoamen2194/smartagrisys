@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import Link from "next/link"
-import { usePathname, useRouter } from "next/navigation"
+import { usePathname } from "next/navigation"
 import {
   BarChart3,
   ShoppingCart,
@@ -35,20 +35,9 @@ import { UserNav } from "@/components/user-nav"
 
 export function MainSidebar() {
   const pathname = usePathname()
-  const router = useRouter()
   const [userType, setUserType] = useState<"farmer" | "customer">("farmer")
 
   const isActive = (path: string) => pathname === path
-
-  const switchToFarmer = () => {
-    setUserType("farmer")
-    router.push("/farmer/dashboard")
-  }
-
-  const switchToCustomer = () => {
-    setUserType("customer")
-    router.push("/customer/shop")
-  }
 
   return (
     <Sidebar className="border-r">
@@ -56,7 +45,7 @@ export function MainSidebar() {
         <div className="flex items-center justify-between px-4 py-3">
           <div className="flex items-center gap-2">
             <Leaf className="h-6 w-6 text-green-600" />
-            <h1 className="text-lg font-bold">FarmTech Pro</h1>
+            <h1 className="text-lg font-bold">AgriSmart</h1>
           </div>
           <SidebarTrigger />
         </div>
@@ -65,7 +54,7 @@ export function MainSidebar() {
             variant={userType === "farmer" ? "default" : "outline"}
             size="sm"
             className="flex-1"
-            onClick={switchToFarmer}
+            onClick={() => setUserType("farmer")}
           >
             Farmer
           </Button>
@@ -73,7 +62,7 @@ export function MainSidebar() {
             variant={userType === "customer" ? "default" : "outline"}
             size="sm"
             className="flex-1"
-            onClick={switchToCustomer}
+            onClick={() => setUserType("customer")}
           >
             Customer
           </Button>
@@ -87,8 +76,8 @@ export function MainSidebar() {
               <SidebarGroupContent>
                 <SidebarMenu>
                   <SidebarMenuItem>
-                    <SidebarMenuButton asChild isActive={isActive("/farmer/dashboard")}>
-                      <Link href="/farmer/dashboard">
+                    <SidebarMenuButton asChild isActive={isActive("/dashboard")}>
+                      <Link href="/dashboard">
                         <BarChart3 />
                         <span>Overview</span>
                       </Link>
@@ -103,24 +92,24 @@ export function MainSidebar() {
               <SidebarGroupContent>
                 <SidebarMenu>
                   <SidebarMenuItem>
-                    <SidebarMenuButton asChild isActive={isActive("/farmer/disease-detection")}>
-                      <Link href="/farmer/disease-detection">
+                    <SidebarMenuButton asChild isActive={isActive("/disease-detection")}>
+                      <Link href="/disease-detection">
                         <Microscope />
                         <span>Disease Detection</span>
                       </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                   <SidebarMenuItem>
-                    <SidebarMenuButton asChild isActive={isActive("/farmer/fruit-sizing")}>
-                      <Link href="/farmer/fruit-sizing">
+                    <SidebarMenuButton asChild isActive={isActive("/fruit-sizing")}>
+                      <Link href="/fruit-sizing">
                         <Ruler />
                         <span>Fruit Sizing</span>
                       </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                   <SidebarMenuItem>
-                    <SidebarMenuButton asChild isActive={isActive("/farmer/crop-recommendation")}>
-                      <Link href="/farmer/crop-recommendation">
+                    <SidebarMenuButton asChild isActive={isActive("/crop-recommendation")}>
+                      <Link href="/crop-recommendation">
                         <CloudRain />
                         <span>Crop Recommendation</span>
                       </Link>
@@ -135,24 +124,24 @@ export function MainSidebar() {
               <SidebarGroupContent>
                 <SidebarMenu>
                   <SidebarMenuItem>
-                    <SidebarMenuButton asChild isActive={isActive("/farmer/inventory")}>
-                      <Link href="/farmer/inventory">
+                    <SidebarMenuButton asChild isActive={isActive("/inventory")}>
+                      <Link href="/inventory">
                         <Package />
                         <span>Inventory</span>
                       </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                   <SidebarMenuItem>
-                    <SidebarMenuButton asChild isActive={isActive("/farmer/orders")}>
-                      <Link href="/farmer/orders">
+                    <SidebarMenuButton asChild isActive={isActive("/orders")}>
+                      <Link href="/orders">
                         <ShoppingCart />
                         <span>Orders</span>
                       </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                   <SidebarMenuItem>
-                    <SidebarMenuButton asChild isActive={isActive("/farmer/chatbot")}>
-                      <Link href="/farmer/chatbot">
+                    <SidebarMenuButton asChild isActive={isActive("/chatbot")}>
+                      <Link href="/chatbot">
                         <MessageSquare />
                         <span>Chatbot</span>
                       </Link>
@@ -169,16 +158,16 @@ export function MainSidebar() {
               <SidebarGroupContent>
                 <SidebarMenu>
                   <SidebarMenuItem>
-                    <SidebarMenuButton asChild isActive={isActive("/customer/shop")}>
-                      <Link href="/customer/shop">
+                    <SidebarMenuButton asChild isActive={isActive("/shop")}>
+                      <Link href="/shop">
                         <Store />
                         <span>Browse Products</span>
                       </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                   <SidebarMenuItem>
-                    <SidebarMenuButton asChild isActive={isActive("/customer/cart")}>
-                      <Link href="/customer/cart">
+                    <SidebarMenuButton asChild isActive={isActive("/cart")}>
+                      <Link href="/cart">
                         <ShoppingCart />
                         <span>Shopping Cart</span>
                       </Link>
@@ -193,24 +182,24 @@ export function MainSidebar() {
               <SidebarGroupContent>
                 <SidebarMenu>
                   <SidebarMenuItem>
-                    <SidebarMenuButton asChild isActive={isActive("/customer/orders")}>
-                      <Link href="/customer/orders">
+                    <SidebarMenuButton asChild isActive={isActive("/orders-history")}>
+                      <Link href="/orders-history">
                         <Package />
                         <span>Order History</span>
                       </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                   <SidebarMenuItem>
-                    <SidebarMenuButton asChild isActive={isActive("/customer/payment-methods")}>
-                      <Link href="/customer/payment-methods">
+                    <SidebarMenuButton asChild isActive={isActive("/payment-methods")}>
+                      <Link href="/payment-methods">
                         <CreditCard />
                         <span>Payment Methods</span>
                       </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                   <SidebarMenuItem>
-                    <SidebarMenuButton asChild isActive={isActive("/customer/shipping")}>
-                      <Link href="/customer/shipping">
+                    <SidebarMenuButton asChild isActive={isActive("/shipping-info")}>
+                      <Link href="/shipping-info">
                         <Truck />
                         <span>Shipping Info</span>
                       </Link>

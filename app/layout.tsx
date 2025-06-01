@@ -7,8 +7,8 @@ import { ThemeProvider } from "@/components/theme-provider"
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "FarmTech Pro - Smart Agriculture Platform",
-  description: "Advanced AI-powered farming solutions and marketplace",
+  title: "Smart Agriculture System",
+  description: "AI-powered assistant for farmers and customers",
     generator: 'v0.dev'
 }
 

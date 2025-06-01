@@ -1,13 +1,10 @@
-"use client"
-
-import { useReports } from "@/hooks/useReports"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { ShoppingCart, Search, Eye, Package, Truck, Download } from "lucide-react"
+import { ShoppingCart, Search, Eye, Package, Truck } from "lucide-react"
 
 const orders = [
   {
@@ -53,20 +50,11 @@ const orders = [
 ]
 
 export default function OrdersPage() {
-  const { downloadReport } = useReports()
-
-  const handleExportOrders = () => {
-    downloadReport("orders", orders)
-  }
-
   return (
     <div className="container mx-auto py-6">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold tracking-tight">Order Management</h1>
-        <Button variant="outline" onClick={handleExportOrders}>
-          <Download className="mr-2 h-4 w-4" />
-          Export Orders
-        </Button>
+        <Button variant="outline">Export Orders</Button>
       </div>
 
       <div className="grid gap-4 md:grid-cols-4 mt-6">

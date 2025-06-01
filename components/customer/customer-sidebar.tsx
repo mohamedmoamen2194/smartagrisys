@@ -37,7 +37,7 @@ export function CustomerSidebar() {
         <div className="flex items-center justify-between px-4 py-3">
           <div className="flex items-center gap-2">
             <Leaf className="h-6 w-6 text-green-600" />
-            <h1 className="text-lg font-bold">FarmTech Pro</h1>
+            <h1 className="text-lg font-bold">AgriSmart</h1>
           </div>
           <SidebarTrigger />
         </div>

@@ -47,12 +47,12 @@ export function FarmerSidebar() {
         <div className="flex items-center justify-between px-4 py-3">
           <div className="flex items-center gap-2">
             <Leaf className="h-6 w-6 text-green-600" />
-            <h1 className="text-lg font-bold">FarmTech Pro</h1>
+            <h1 className="text-lg font-bold">AgriSmart</h1>
           </div>
           <SidebarTrigger />
         </div>
         <div className="px-4 py-2">
-          <div className="text-sm text-muted-foreground">Farmer Dashboard</div>
+          <div className="text-sm text-muted-foreground">Farmer Portal</div>
         </div>
       </SidebarHeader>
       <SidebarContent>

@@ -1,30 +1,13 @@
-"use client"
-
-import { useReports } from "@/hooks/useReports"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
-import { Microscope, AlertTriangle, CheckCircle, Camera, ImageIcon, Download } from "lucide-react"
+import { Microscope, AlertTriangle, CheckCircle, Camera, ImageIcon } from "lucide-react"
 import { ImageUploader } from "@/components/image-uploader"
 
 export default function DiseaseDetectionPage() {
-  const { downloadReport } = useReports()
-
-  const handleDownloadReport = () => {
-    const reportData = {
-      plantType: "Tomato",
-      disease: "Late Blight",
-      confidence: 0.98,
-      affectedArea: 45,
-      severity: "High",
-      spreadRisk: "High",
-    }
-    downloadReport("disease-detection", reportData)
-  }
-
   return (
     <div className="container mx-auto py-6">
       <div className="flex items-center justify-between">
@@ -146,10 +129,7 @@ export default function DiseaseDetectionPage() {
           </div>
         </CardContent>
         <CardFooter className="flex justify-between">
-          <Button variant="outline" onClick={handleDownloadReport}>
-            <Download className="mr-2 h-4 w-4" />
-            Download Report
-          </Button>
+          <Button variant="outline">Download Report</Button>
           <Button variant="destructive">Mark for Treatment</Button>
         </CardFooter>
       </Card>
