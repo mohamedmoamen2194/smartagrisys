@@ -3,20 +3,20 @@
 // Inspired by react-hot-toast library
 import * as React from "react"
 
-type ToastProps = {
-  title?: string
-  description?: string
-  variant?: "default" | "destructive"
-}
-
-type ToasterToast = ToastProps & {
-  id: string
-  open?: boolean
-  onOpenChange?: (open: boolean) => void
-}
+import type {
+  ToastActionElement,
+  ToastProps,
+} from "@/components/ui/toast"
 
 const TOAST_LIMIT = 1
 const TOAST_REMOVE_DELAY = 1000000
+
+type ToasterToast = ToastProps & {
+  id: string
+  title?: React.ReactNode
+  description?: React.ReactNode
+  action?: ToastActionElement
+}
 
 const actionTypes = {
   ADD_TOAST: "ADD_TOAST",
@@ -85,7 +85,9 @@ export const reducer = (state: State, action: Action): State => {
     case "UPDATE_TOAST":
       return {
         ...state,
-        toasts: state.toasts.map((t) => (t.id === action.toast.id ? { ...t, ...action.toast } : t)),
+        toasts: state.toasts.map((t) =>
+          t.id === action.toast.id ? { ...t, ...action.toast } : t
+        ),
       }
 
     case "DISMISS_TOAST": {
@@ -109,7 +111,7 @@ export const reducer = (state: State, action: Action): State => {
                 ...t,
                 open: false,
               }
-            : t,
+            : t
         ),
       }
     }
@@ -138,19 +140,39 @@ function dispatch(action: Action) {
   })
 }
 
+type Toast = Omit<ToasterToast, "id">
+
+function toast({ ...props }: Toast) {
+  const id = genId()
+
+  const update = (props: ToasterToast) =>
+    dispatch({
+      type: "UPDATE_TOAST",
+      toast: { ...props, id },
+    })
+  const dismiss = () => dispatch({ type: "DISMISS_TOAST", toastId: id })
+
+  dispatch({
+    type: "ADD_TOAST",
+    toast: {
+      ...props,
+      id,
+      open: true,
+      onOpenChange: (open) => {
+        if (!open) dismiss()
+      },
+    },
+  })
+
+  return {
+    id: id,
+    dismiss,
+    update,
+  }
+}
+
 function useToast() {
   const [state, setState] = React.useState<State>(memoryState)
-
-  const toast = React.useCallback(({ title, description, variant = "default" }: ToastProps) => {
-    // Simple alert implementation for now
-    // In a real app, you'd use a proper toast library
-    const message = title ? `${title}: ${description}` : description
-    if (variant === "destructive") {
-      alert(`Error: ${message}`)
-    } else {
-      alert(message)
-    }
-  }, [])
 
   React.useEffect(() => {
     listeners.push(setState)
@@ -169,4 +191,4 @@ function useToast() {
   }
 }
 
-export { useToast }
+export { useToast, toast }
