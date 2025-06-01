@@ -1,0 +1,424 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// User Management
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  firstName String
+  lastName  String
+  phone     String?
+  role      UserRole
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Farmer specific fields
+  farmer   Farmer?
+  // Customer specific fields
+  customer Customer?
+
+  @@map("users")
+}
+
+enum UserRole {
+  FARMER
+  CUSTOMER
+  ADMIN
+}
+
+// Farmer Profile
+model Farmer {
+  id          String  @id @default(cuid())
+  userId      String  @unique
+  farmName    String
+  farmAddress String
+  farmSize    Float? // in acres
+  description String? @db.Text
+  
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Relations
+  products    Product[]
+  orders      Order[]
+  inventory   InventoryItem[]
+  cropReports CropReport[]
+  sensors     Sensor[]
+
+  @@map("farmers")
+}
+
+// Customer Profile
+model Customer {
+  id     String @id @default(cuid())
+  userId String @unique
+  
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Relations
+  orders          Order[]
+  cartItems       CartItem[]
+  addresses       Address[]
+  paymentMethods  PaymentMethod[]
+
+  @@map("customers")
+}
+
+// Product Management
+model Product {
+  id          String        @id @default(cuid())
+  name        String
+  description String?       @db.Text
+  category    ProductCategory
+  price       Decimal       @db.Decimal(10, 2)
+  unit        String        // kg, pieces, etc.
+  farmerId    String
+  isActive    Boolean       @default(true)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  farmer Farmer @relation(fields: [farmerId], references: [id], onDelete: Cascade)
+
+  // Relations
+  inventoryItems InventoryItem[]
+  orderItems     OrderItem[]
+  cartItems      CartItem[]
+  images         ProductImage[]
+
+  @@map("products")
+}
+
+enum ProductCategory {
+  FRUITS
+  VEGETABLES
+  GRAINS
+  HERBS
+  DAIRY
+  OTHER
+}
+
+model ProductImage {
+  id        String   @id @default(cuid())
+  productId String
+  imageUrl  String
+  altText   String?
+  isPrimary Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@map("product_images")
+}
+
+// Inventory Management
+model InventoryItem {
+  id           String   @id @default(cuid())
+  productId    String
+  farmerId     String
+  quantity     Int
+  reservedQty  Int      @default(0) // Reserved for pending orders
+  minThreshold Int      @default(10)
+  maxThreshold Int      @default(1000)
+  lastUpdated  DateTime @updatedAt
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  farmer  Farmer  @relation(fields: [farmerId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, farmerId])
+  @@map("inventory_items")
+}
+
+// Order Management
+model Order {
+  id            String      @id @default(cuid())
+  orderNumber   String      @unique
+  customerId    String
+  farmerId      String
+  status        OrderStatus @default(PENDING)
+  subtotal      Decimal     @db.Decimal(10, 2)
+  shippingCost  Decimal     @db.Decimal(10, 2) @default(0)
+  tax           Decimal     @db.Decimal(10, 2) @default(0)
+  total         Decimal     @db.Decimal(10, 2)
+  shippingAddress Json      // Store address as JSON
+  paymentStatus PaymentStatus @default(PENDING)
+  paymentMethod String?
+  notes         String?     @db.Text
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  customer Customer @relation(fields: [customerId], references: [id])
+  farmer   Farmer   @relation(fields: [farmerId], references: [id])
+
+  // Relations
+  orderItems OrderItem[]
+  payments   Payment[]
+  shipments  Shipment[]
+
+  @@map("orders")
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  PROCESSING
+  SHIPPED
+  DELIVERED
+  CANCELLED
+  REFUNDED
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+}
+
+model OrderItem {
+  id        String  @id @default(cuid())
+  orderId   String
+  productId String
+  quantity  Int
+  unitPrice Decimal @db.Decimal(10, 2)
+  total     Decimal @db.Decimal(10, 2)
+
+  order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id])
+
+  @@map("order_items")
+}
+
+// Shopping Cart
+model CartItem {
+  id         String   @id @default(cuid())
+  customerId String
+  productId  String
+  quantity   Int
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  product  Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([customerId, productId])
+  @@map("cart_items")
+}
+
+// Payment Management
+model Payment {
+  id              String        @id @default(cuid())
+  orderId         String
+  amount          Decimal       @db.Decimal(10, 2)
+  currency        String        @default("USD")
+  status          PaymentStatus
+  paymentMethod   String
+  transactionId   String?       @unique
+  gatewayResponse Json?         // Store gateway response
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  order Order @relation(fields: [orderId], references: [id])
+
+  @@map("payments")
+}
+
+model PaymentMethod {
+  id         String  @id @default(cuid())
+  customerId String
+  type       String  // credit, debit, paypal, etc.
+  brand      String? // visa, mastercard, etc.
+  last4      String
+  expiryMonth Int?
+  expiryYear  Int?
+  isDefault  Boolean @default(false)
+  isActive   Boolean @default(true)
+  createdAt  DateTime @default(now())
+
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@map("payment_methods")
+}
+
+// Shipping Management
+model Address {
+  id         String  @id @default(cuid())
+  customerId String
+  name       String  // Home, Office, etc.
+  fullName   String
+  address    String
+  city       String
+  state      String
+  zipCode    String
+  country    String  @default("United States")
+  isDefault  Boolean @default(false)
+  createdAt  DateTime @default(now())
+
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@map("addresses")
+}
+
+model Shipment {
+  id            String         @id @default(cuid())
+  orderId       String
+  trackingNumber String?       @unique
+  carrier       String?        // UPS, FedEx, etc.
+  status        ShipmentStatus @default(PREPARING)
+  shippedAt     DateTime?
+  deliveredAt   DateTime?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  order Order @relation(fields: [orderId], references: [id])
+
+  @@map("shipments")
+}
+
+enum ShipmentStatus {
+  PREPARING
+  SHIPPED
+  IN_TRANSIT
+  OUT_FOR_DELIVERY
+  DELIVERED
+  FAILED_DELIVERY
+}
+
+// AI & Sensor Data
+model Sensor {
+  id        String     @id @default(cuid())
+  farmerId  String
+  name      String
+  type      SensorType
+  location  String     // Field location description
+  isActive  Boolean    @default(true)
+  createdAt DateTime   @default(now())
+
+  farmer Farmer @relation(fields: [farmerId], references: [id], onDelete: Cascade)
+
+  // Relations
+  readings SensorReading[]
+
+  @@map("sensors")
+}
+
+enum SensorType {
+  SOIL_PH
+  SOIL_MOISTURE
+  TEMPERATURE
+  HUMIDITY
+  RAINFALL
+  LIGHT_INTENSITY
+}
+
+model SensorReading {
+  id        String   @id @default(cuid())
+  sensorId  String
+  value     Decimal  @db.Decimal(10, 4)
+  unit      String
+  timestamp DateTime @default(now())
+
+  sensor Sensor @relation(fields: [sensorId], references: [id], onDelete: Cascade)
+
+  @@map("sensor_readings")
+}
+
+// AI Analysis Reports
+model CropReport {
+  id          String     @id @default(cuid())
+  farmerId    String
+  reportType  ReportType
+  cropType    String?
+  imageUrl    String?
+  analysis    Json       // Store AI analysis results
+  confidence  Decimal?   @db.Decimal(5, 4) // 0.0000 to 1.0000
+  recommendations Json?  // Store recommendations
+  status      String     @default("completed")
+  createdAt   DateTime   @default(now())
+
+  farmer Farmer @relation(fields: [farmerId], references: [id], onDelete: Cascade)
+
+  @@map("crop_reports")
+}
+
+enum ReportType {
+  DISEASE_DETECTION
+  FRUIT_SIZING
+  CROP_RECOMMENDATION
+  SOIL_ANALYSIS
+}
+
+// Disease Detection
+model DiseaseDetection {
+  id           String   @id @default(cuid())
+  reportId     String?  @unique
+  diseaseName  String
+  severity     String   // LOW, MEDIUM, HIGH
+  affectedArea Decimal? @db.Decimal(5, 2) // Percentage
+  treatment    Json?    // Treatment recommendations
+  createdAt    DateTime @default(now())
+
+  @@map("disease_detections")
+}
+
+// Fruit Sizing Analysis
+model FruitSizing {
+  id           String   @id @default(cuid())
+  reportId     String?  @unique
+  fruitType    String
+  grade        String   // A, B, C
+  avgDiameter  Decimal? @db.Decimal(5, 2) // in cm
+  avgWeight    Decimal? @db.Decimal(6, 2) // in grams
+  colorUniformity Decimal? @db.Decimal(5, 2) // Percentage
+  defects      Json?    // List of defects found
+  harvestReady Boolean  @default(false)
+  createdAt    DateTime @default(now())
+
+  @@map("fruit_sizing")
+}
+
+// System Logs & Notifications
+model SystemLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  action    String
+  entity    String   // table name
+  entityId  String?
+  details   Json?
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  @@map("system_logs")
+}
+
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String
+  type      NotificationType
+  title     String
+  message   String           @db.Text
+  isRead    Boolean          @default(false)
+  data      Json?            // Additional data
+  createdAt DateTime         @default(now())
+
+  @@map("notifications")
+}
+
+enum NotificationType {
+  ORDER_UPDATE
+  PAYMENT_RECEIVED
+  INVENTORY_LOW
+  DISEASE_ALERT
+  SYSTEM_ALERT
+  GENERAL
+}
