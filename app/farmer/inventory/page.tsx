@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, ChangeEvent } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -52,6 +52,8 @@ interface EditDialogProps {
 interface AddDialogProps {
   onAdd: (data: { productId: string; quantity: number; minThreshold: number; maxThreshold: number }) => Promise<void>
 }
+
+type Status = "in-stock" | "low-stock" | "out-of-stock"
 
 function AddDialog({ onAdd }: AddDialogProps) {
   // Product fields
@@ -146,7 +148,7 @@ function AddDialog({ onAdd }: AddDialogProps) {
             <Input
               id="name"
               value={name}
-              onChange={(e) => setName(e.target.value)}
+              onChange={(e: ChangeEvent<HTMLInputElement>) => setName(e.target.value)}
               className="col-span-3"
             />
           </div>
@@ -157,7 +159,7 @@ function AddDialog({ onAdd }: AddDialogProps) {
             <Input
               id="description"
               value={description}
-              onChange={(e) => setDescription(e.target.value)}
+              onChange={(e: ChangeEvent<HTMLInputElement>) => setDescription(e.target.value)}
               className="col-span-3"
             />
           </div>
@@ -188,7 +190,7 @@ function AddDialog({ onAdd }: AddDialogProps) {
               type="number"
               step="0.01"
               value={price}
-              onChange={(e) => setPrice(Number(e.target.value))}
+              onChange={(e: ChangeEvent<HTMLInputElement>) => setPrice(Number(e.target.value))}
               className="col-span-3"
             />
           </div>
@@ -199,7 +201,7 @@ function AddDialog({ onAdd }: AddDialogProps) {
             <Input
               id="unit"
               value={unit}
-              onChange={(e) => setUnit(e.target.value)}
+              onChange={(e: ChangeEvent<HTMLInputElement>) => setUnit(e.target.value)}
               placeholder="kg, pieces, etc."
               className="col-span-3"
             />
@@ -212,7 +214,7 @@ function AddDialog({ onAdd }: AddDialogProps) {
               id="quantity"
               type="number"
               value={quantity}
-              onChange={(e) => setQuantity(Number(e.target.value))}
+              onChange={(e: ChangeEvent<HTMLInputElement>) => setQuantity(Number(e.target.value))}
               className="col-span-3"
             />
           </div>
@@ -224,7 +226,7 @@ function AddDialog({ onAdd }: AddDialogProps) {
               id="minThreshold"
               type="number"
               value={minThreshold}
-              onChange={(e) => setMinThreshold(Number(e.target.value))}
+              onChange={(e: ChangeEvent<HTMLInputElement>) => setMinThreshold(Number(e.target.value))}
               className="col-span-3"
             />
           </div>
@@ -236,7 +238,7 @@ function AddDialog({ onAdd }: AddDialogProps) {
               id="maxThreshold"
               type="number"
               value={maxThreshold}
-              onChange={(e) => setMaxThreshold(Number(e.target.value))}
+              onChange={(e: ChangeEvent<HTMLInputElement>) => setMaxThreshold(Number(e.target.value))}
               className="col-span-3"
             />
           </div>
@@ -295,7 +297,7 @@ function EditDialog({ item, onSave }: EditDialogProps) {
               id="quantity"
               type="number"
               value={quantity}
-              onChange={(e) => setQuantity(Number(e.target.value))}
+              onChange={(e: ChangeEvent<HTMLInputElement>) => setQuantity(Number(e.target.value))}
               className="col-span-3"
             />
           </div>
@@ -307,7 +309,7 @@ function EditDialog({ item, onSave }: EditDialogProps) {
               id="minThreshold"
               type="number"
               value={minThreshold}
-              onChange={(e) => setMinThreshold(Number(e.target.value))}
+              onChange={(e: ChangeEvent<HTMLInputElement>) => setMinThreshold(Number(e.target.value))}
               className="col-span-3"
             />
           </div>
@@ -319,7 +321,7 @@ function EditDialog({ item, onSave }: EditDialogProps) {
               id="maxThreshold"
               type="number"
               value={maxThreshold}
-              onChange={(e) => setMaxThreshold(Number(e.target.value))}
+              onChange={(e: ChangeEvent<HTMLInputElement>) => setMaxThreshold(Number(e.target.value))}
               className="col-span-3"
             />
           </div>
@@ -458,7 +460,7 @@ export default function InventoryPage() {
     }
   }
 
-  const getStatus = (quantity: number, minThreshold: number) => {
+  const getStatus = (quantity: number, minThreshold: number): Status => {
     if (quantity <= 0) return "out-of-stock"
     if (quantity <= minThreshold) return "low-stock"
     return "in-stock"
@@ -544,7 +546,7 @@ export default function InventoryPage() {
                 placeholder="Search products..."
                 className="pl-10"
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={(e: ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value)}
               />
             </div>
           </div>
@@ -582,12 +584,12 @@ export default function InventoryPage() {
                     <TableCell className="text-right">${item.product.price}</TableCell>
                     <TableCell>
                       <Badge
-                        variant={
+                        className={
                           getStatus(item.quantity, item.minThreshold) === "in-stock"
-                            ? "default"
+                            ? "bg-green-500"
                             : getStatus(item.quantity, item.minThreshold) === "low-stock"
-                              ? "secondary"
-                              : "destructive"
+                              ? "bg-yellow-500"
+                              : "bg-red-500"
                         }
                       >
                         {getStatus(item.quantity, item.minThreshold).replace("-", " ")}
