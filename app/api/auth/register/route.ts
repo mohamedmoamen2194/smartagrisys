@@ -3,9 +3,9 @@ import { registerUser } from "@/lib/auth-utils"
 
 export async function POST(request: NextRequest) {
   try {
-    const { email, password, firstname, lastname, role, phone } = await request.json()
+    const { email, password, firstName, lastName, role, phone } = await request.json()
 
-    if (!email || !password || !firstname || !lastname || !role) {
+    if (!email || !password || !firstName || !lastName || !role) {
       return NextResponse.json({ error: "All required fields must be provided" }, { status: 400 })
     }
 
@@ -16,8 +16,8 @@ export async function POST(request: NextRequest) {
     const user = await registerUser({
       email,
       password,
-      firstname,
-      lastname,
+      firstName,
+      lastName,
       role,
       phone,
     })
@@ -28,8 +28,8 @@ export async function POST(request: NextRequest) {
       user: {
         id: user.id,
         email: user.email,
-        firstname: user.firstname,
-        lastname: user.lastname,
+        firstName: user.firstName,
+        lastName: user.lastName,
         role: user.role,
       },
     })

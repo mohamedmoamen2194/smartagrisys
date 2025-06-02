@@ -19,8 +19,8 @@ export async function authenticateUser(email: string, password: string) {
   return {
     id: user.id,
     email: user.email,
-    firstname: user.firstname,
-    lastname: user.lastname,
+    firstName: user.firstName,
+    lastName: user.lastName,
     role: user.role,
   }
 }
@@ -28,8 +28,8 @@ export async function authenticateUser(email: string, password: string) {
 export async function registerUser(data: {
   email: string
   password: string
-  firstname: string
-  lastname: string
+  firstName: string
+  lastName: string
   role: "FARMER" | "CUSTOMER"
   phone?: string
 }) {

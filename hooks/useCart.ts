@@ -3,18 +3,19 @@
 import { useState, useEffect } from "react"
 
 interface CartItem {
-  id: number
+  id: string
   name: string
   price: number
   quantity: number
   unit: string
   farmer: string
-  image: string
+  image?: string
 }
 
 export function useCart() {
   const [cartItems, setCartItems] = useState<CartItem[]>([])
   const [loading, setLoading] = useState(false)
+  const [initialized, setInitialized] = useState(false)
 
   // Load cart from localStorage on mount
   useEffect(() => {
@@ -26,12 +27,15 @@ export function useCart() {
         console.error("Error loading cart:", error)
       }
     }
+    setInitialized(true)
   }, [])
 
   // Save cart to localStorage whenever it changes
   useEffect(() => {
-    localStorage.setItem("cart", JSON.stringify(cartItems))
-  }, [cartItems])
+    if (initialized) {
+      localStorage.setItem("cart", JSON.stringify(cartItems))
+    }
+  }, [cartItems, initialized])
 
   const addToCart = async (product: Omit<CartItem, "quantity">) => {
     setLoading(true)
@@ -49,7 +53,7 @@ export function useCart() {
     }
   }
 
-  const updateQuantity = async (id: number, quantity: number) => {
+  const updateQuantity = async (id: string, quantity: number) => {
     setLoading(true)
     try {
       if (quantity <= 0) {
@@ -62,7 +66,7 @@ export function useCart() {
     }
   }
 
-  const removeFromCart = async (id: number) => {
+  const removeFromCart = async (id: string) => {
     setLoading(true)
     try {
       setCartItems((prev) => prev.filter((item) => item.id !== id))

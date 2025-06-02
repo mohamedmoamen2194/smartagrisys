@@ -1,5 +1,5 @@
-import { PrismaClient } from '@prisma/client'
-import bcrypt from 'bcryptjs'
+const { PrismaClient } = require('@prisma/client')
+const bcrypt = require('bcryptjs')
 
 const prisma = new PrismaClient()
 
@@ -36,7 +36,7 @@ async function main() {
         category: 'FRUITS',
         price: 2.99,
         unit: 'kg',
-        farmerId: farmer.farmer!.id,
+        farmerId: farmer.farmer.id,
         images: {
           create: {
             imageUrl: 'https://example.com/apples.jpg',
@@ -53,7 +53,7 @@ async function main() {
         category: 'VEGETABLES',
         price: 3.99,
         unit: 'kg',
-        farmerId: farmer.farmer!.id,
+        farmerId: farmer.farmer.id,
         images: {
           create: {
             imageUrl: 'https://example.com/tomatoes.jpg',
@@ -71,7 +71,7 @@ async function main() {
       prisma.inventoryItem.create({
         data: {
           productId: product.id,
-          farmerId: farmer.farmer!.id,
+          farmerId: farmer.farmer.id,
           quantity: 100,
           minThreshold: 10,
           maxThreshold: 200,
@@ -90,4 +90,4 @@ main()
   })
   .finally(async () => {
     await prisma.$disconnect()
-  })
+  }) 

@@ -1,71 +1,62 @@
 "use client"
 
+import { useEffect, useState } from "react"
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts"
 
-const data = [
-  {
-    name: "Jan",
-    sales: 4000,
-    expenses: 2400,
-  },
-  {
-    name: "Feb",
-    sales: 3000,
-    expenses: 1398,
-  },
-  {
-    name: "Mar",
-    sales: 2000,
-    expenses: 9800,
-  },
-  {
-    name: "Apr",
-    sales: 2780,
-    expenses: 3908,
-  },
-  {
-    name: "May",
-    sales: 1890,
-    expenses: 4800,
-  },
-  {
-    name: "Jun",
-    sales: 2390,
-    expenses: 3800,
-  },
-  {
-    name: "Jul",
-    sales: 3490,
-    expenses: 4300,
-  },
-  {
-    name: "Aug",
-    sales: 4000,
-    expenses: 2400,
-  },
-  {
-    name: "Sep",
-    sales: 3000,
-    expenses: 1398,
-  },
-  {
-    name: "Oct",
-    sales: 2000,
-    expenses: 9800,
-  },
-  {
-    name: "Nov",
-    sales: 2780,
-    expenses: 3908,
-  },
-  {
-    name: "Dec",
-    sales: 1890,
-    expenses: 4800,
-  },
-]
+type ChartData = {
+  name: string;
+  sales: number;
+  expenses: number;
+};
 
 export function DashboardChart() {
+  const [data, setData] = useState<ChartData[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchChartData = async () => {
+      try {
+        const user = localStorage.getItem('user');
+        if (!user) {
+          setError('User not authenticated');
+          return;
+        }
+
+        const response = await fetch('/api/dashboard/chart', {
+          headers: {
+            'authorization': user
+          }
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch chart data');
+        }
+
+        const chartData = await response.json();
+        setData(chartData);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to fetch chart data');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchChartData();
+  }, []);
+
+  if (loading) {
+    return <div className="flex items-center justify-center h-full">Loading...</div>;
+  }
+
+  if (error) {
+    return <div className="flex items-center justify-center h-full text-red-500">{error}</div>;
+  }
+
+  if (data.length === 0) {
+    return <div className="flex items-center justify-center h-full text-muted-foreground">No data available</div>;
+  }
+
   return (
     <ResponsiveContainer width="100%" height="100%">
       <BarChart data={data} margin={{ top: 10, right: 30, left: 0, bottom: 5 }}>
@@ -78,5 +69,5 @@ export function DashboardChart() {
         <Bar dataKey="expenses" fill="#94a3b8" name="Expenses" />
       </BarChart>
     </ResponsiveContainer>
-  )
+  );
 }

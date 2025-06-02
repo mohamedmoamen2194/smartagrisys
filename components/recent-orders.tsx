@@ -1,56 +1,68 @@
+"use client"
+
+import { useEffect, useState } from "react"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 
-const orders = [
-  {
-    id: "ORD-001",
-    customer: "John Smith",
-    product: "Apples (Grade A)",
-    quantity: 25,
-    total: "$75.00",
-    status: "pending",
-    date: "2025-06-01",
-  },
-  {
-    id: "ORD-002",
-    customer: "Sarah Johnson",
-    product: "Corn (Organic)",
-    quantity: 50,
-    total: "$124.50",
-    status: "processing",
-    date: "2025-06-01",
-  },
-  {
-    id: "ORD-003",
-    customer: "Michael Brown",
-    product: "Tomatoes (Grade A)",
-    quantity: 15,
-    total: "$64.35",
-    status: "shipped",
-    date: "2025-05-31",
-  },
-  {
-    id: "ORD-004",
-    customer: "Emily Davis",
-    product: "Mixed Vegetables",
-    quantity: 30,
-    total: "$89.70",
-    status: "delivered",
-    date: "2025-05-30",
-  },
-  {
-    id: "ORD-005",
-    customer: "Robert Wilson",
-    product: "Apples (Grade B)",
-    quantity: 40,
-    total: "$99.60",
-    status: "pending",
-    date: "2025-05-30",
-  },
-]
+type Order = {
+  id: string;
+  customer: string;
+  product: string;
+  quantity: number;
+  total: string;
+  status: string;
+  date: string;
+};
 
 export function RecentOrders() {
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchOrders = async () => {
+      try {
+        const user = localStorage.getItem('user');
+        if (!user) {
+          setError('User not authenticated');
+          return;
+        }
+
+        const response = await fetch('/api/orders/recent', {
+          headers: {
+            'authorization': user
+          }
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch recent orders');
+        }
+
+        const data = await response.json();
+        setOrders(data);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to fetch orders');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchOrders();
+  }, []);
+
+  if (loading) {
+    return <div>Loading...</div>;
+  }
+
+  if (error) {
+    return <div className="text-red-500">{error}</div>;
+  }
+
+  if (orders.length === 0) {
+    return <div className="text-muted-foreground">No recent orders found.</div>;
+  }
+
   return (
     <div className="overflow-x-auto">
       <Table>
@@ -81,9 +93,7 @@ export function RecentOrders() {
                       ? "outline"
                       : order.status === "processing"
                         ? "secondary"
-                        : order.status === "shipped"
-                          ? "default"
-                          : "success"
+                        : "default"
                   }
                 >
                   {order.status}
@@ -100,5 +110,5 @@ export function RecentOrders() {
         </TableBody>
       </Table>
     </div>
-  )
+  );
 }

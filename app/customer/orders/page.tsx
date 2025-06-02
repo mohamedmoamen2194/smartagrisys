@@ -1,46 +1,90 @@
+"use client"
+
+import { useEffect, useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
-import { Package, Truck, CheckCircle, Clock } from "lucide-react"
+import { Package, Truck, CheckCircle, Clock, AlertCircle } from "lucide-react"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 
-const customerOrders = [
-  {
-    id: "ORD-001",
-    date: "2025-06-01",
-    status: "delivered",
-    total: 75.0,
-    items: [{ name: "Fresh Apples", quantity: 25, price: 3.0 }],
-    farmer: "John's Farm",
-    deliveryDate: "2025-06-03",
-  },
-  {
-    id: "ORD-002",
-    date: "2025-05-28",
-    status: "shipped",
-    total: 124.5,
-    items: [{ name: "Sweet Corn", quantity: 50, price: 2.49 }],
-    farmer: "Green Valley Farm",
-    deliveryDate: "2025-06-02",
-  },
-  {
-    id: "ORD-003",
-    date: "2025-05-25",
-    status: "processing",
-    total: 64.35,
-    items: [{ name: "Organic Tomatoes", quantity: 15, price: 4.29 }],
-    farmer: "Sunny Acres",
-    deliveryDate: "2025-06-05",
-  },
-]
+type DashboardStats = {
+  totalOrders: number;
+  inTransitOrders: number;
+  deliveredOrders: number;
+  totalSpent: number;
+};
+
+type Order = {
+  id: string;
+  date: string;
+  status: string;
+  total: number;
+  items: Array<{
+    name: string;
+    quantity: number;
+    price: number;
+  }>;
+  farmer: string;
+  deliveryDate: string;
+};
 
 export default function CustomerOrdersPage() {
+  const [stats, setStats] = useState<DashboardStats>({
+    totalOrders: 0,
+    inTransitOrders: 0,
+    deliveredOrders: 0,
+    totalSpent: 0
+  });
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const user = localStorage.getItem('user');
+        if (!user) {
+          setError('User not authenticated');
+          return;
+        }
+
+        const response = await fetch('/api/dashboard/stats', {
+          headers: {
+            'authorization': user
+          }
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch order statistics');
+        }
+
+        const data = await response.json();
+        setStats(data);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to fetch statistics');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchStats();
+  }, []);
+
   return (
     <div className="container mx-auto py-6">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold tracking-tight">Order History</h1>
-        <Button variant="outline">Download Receipt</Button>
+        <Button variant="outline" onClick={() => window.location.reload()}>Refresh</Button>
       </div>
+
+      {error && (
+        <Alert className="mt-6" variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Error</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
 
       <div className="grid gap-4 md:grid-cols-4 mt-6">
         <Card>
@@ -49,7 +93,7 @@ export default function CustomerOrdersPage() {
             <Package className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">24</div>
+            <div className="text-2xl font-bold">{stats.totalOrders}</div>
             <p className="text-xs text-muted-foreground">All time</p>
           </CardContent>
         </Card>
@@ -59,7 +103,7 @@ export default function CustomerOrdersPage() {
             <Truck className="h-4 w-4 text-blue-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">1</div>
+            <div className="text-2xl font-bold">{stats.inTransitOrders}</div>
             <p className="text-xs text-muted-foreground">Being delivered</p>
           </CardContent>
         </Card>
@@ -69,7 +113,7 @@ export default function CustomerOrdersPage() {
             <CheckCircle className="h-4 w-4 text-green-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">22</div>
+            <div className="text-2xl font-bold">{stats.deliveredOrders}</div>
             <p className="text-xs text-muted-foreground">Successfully delivered</p>
           </CardContent>
         </Card>
@@ -79,14 +123,14 @@ export default function CustomerOrdersPage() {
             <Package className="h-4 w-4 text-green-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">$1,247</div>
-            <p className="text-xs text-muted-foreground">This year</p>
+            <div className="text-2xl font-bold">${stats.totalSpent.toFixed(2)}</div>
+            <p className="text-xs text-muted-foreground">All time</p>
           </CardContent>
         </Card>
       </div>
 
       <div className="space-y-4 mt-6">
-        {customerOrders.map((order) => (
+        {orders.map((order) => (
           <Card key={order.id}>
             <CardHeader>
               <div className="flex items-center justify-between">
@@ -145,5 +189,5 @@ export default function CustomerOrdersPage() {
         ))}
       </div>
     </div>
-  )
+  );
 }

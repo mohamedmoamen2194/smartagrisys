@@ -34,8 +34,8 @@ export async function POST(request: NextRequest) {
       user: {
         id: user.id,
         email: user.email,
-        firstname: user.firstname,
-        lastname: user.lastname,
+        firstName: user.firstName,
+        lastName: user.lastName,
         role: user.role,
         userType: user.role.toLowerCase(), // Add for compatibility
         profile: userWithProfile?.profile,

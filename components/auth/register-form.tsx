@@ -16,8 +16,8 @@ interface RegisterFormProps {
 
 export function RegisterForm({ userType }: RegisterFormProps) {
   const [formData, setFormData] = useState({
-    firstname: "",
-    lastname: "",
+    firstName: "",
+    lastName: "",
     email: "",
     phone: "",
     password: "",
@@ -62,8 +62,8 @@ export function RegisterForm({ userType }: RegisterFormProps) {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          firstname: formData.firstname,
-          lastname: formData.lastname,
+          firstName: formData.firstName,
+          lastName: formData.lastName,
           email: formData.email,
           phone: formData.phone || undefined,
           password: formData.password,
@@ -112,23 +112,23 @@ export function RegisterForm({ userType }: RegisterFormProps) {
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="firstname">First Name</Label>
+              <Label htmlFor="firstName">First Name</Label>
               <Input
-                id="firstname"
-                name="firstname"
+                id="firstName"
+                name="firstName"
                 placeholder="John"
-                value={formData.firstname}
+                value={formData.firstName}
                 onChange={handleChange}
                 required
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="lastname">Last Name</Label>
+              <Label htmlFor="lastName">Last Name</Label>
               <Input
-                id="lastname"
-                name="lastname"
+                id="lastName"
+                name="lastName"
                 placeholder="Doe"
-                value={formData.lastname}
+                value={formData.lastName}
                 onChange={handleChange}
                 required
               />
