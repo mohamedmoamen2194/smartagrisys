@@ -1,0 +1,54 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "./generated/product"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("PRODUCT_DB_URL")
+}
+
+model Product {
+  id          String    @id @default(cuid())
+  name        String
+  description String?
+  price       Float
+  stock       Int       @default(0)
+  farmerId    String    // Reference to FarmerDB
+  imageIds    String[]  // Reference to ImageDB
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@map("products")
+}
+
+model Inventory {
+  id           String   @id @default(cuid())
+  productId    String
+  quantity     Int      @default(0)
+  reserved     Int      @default(0)
+  minThreshold Int      @default(10)
+  maxThreshold Int      @default(100)
+  lastUpdated  DateTime @updatedAt
+
+  @@map("inventory")
+}
+
+// For product categorization and search
+model Category {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String?
+  createdAt   DateTime @default(now())
+
+  @@map("categories")
+}
+
+model ProductCategory {
+  productId  String
+  categoryId String
+
+  @@id([productId, categoryId])
+  @@map("product_categories")
+} 

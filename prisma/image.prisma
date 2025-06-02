@@ -1,0 +1,50 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "./generated/image"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("IMAGE_DB_URL")
+}
+
+enum ImageType {
+  PRODUCT
+  DISEASE_DETECTION
+  FRUIT_SIZING
+  FARM
+  PROFILE
+}
+
+model Image {
+  id          String    @id @default(cuid())
+  url         String
+  type        ImageType
+  metadata    Json      // Stores analysis results, dimensions, etc.
+  farmerId    String?   // Reference to FarmerDB
+  productId   String?   // Reference to ProductDB
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@map("images")
+}
+
+model DiseaseDetection {
+  id          String   @id @default(cuid())
+  imageId     String   // Reference to Image
+  results     Json     // Analysis results
+  confidence  Float
+  timestamp   DateTime @default(now())
+
+  @@map("disease_detections")
+}
+
+model FruitSizing {
+  id          String   @id @default(cuid())
+  imageId     String   // Reference to Image
+  measurements Json    // Size measurements
+  grade       String
+  timestamp   DateTime @default(now())
+
+  @@map("fruit_sizing")
+} 

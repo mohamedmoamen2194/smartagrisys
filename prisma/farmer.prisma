@@ -1,0 +1,55 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "./generated/farmer"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("FARMER_DB_URL")
+}
+
+model Farmer {
+  id          String    @id @default(cuid())
+  userId      String    @unique
+  farmName    String
+  description String?
+  location    Json      // Stores coordinates and address
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // Virtual fields for cross-database references
+  productIds  String[]  // References to ProductDB
+  sensorIds   String[]  // References to SensorDB
+  imageIds    String[]  // References to ImageDB
+  orderIds    String[]  // References to OrderDB
+
+  @@map("farmers")
+}
+
+model FarmZone {
+  id          String    @id @default(cuid())
+  farmerId    String
+  name        String
+  area        Float     // in square meters
+  cropType    String?
+  sensorIds   String[]  // References to SensorDB
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@map("farm_zones")
+}
+
+model CropPlan {
+  id          String    @id @default(cuid())
+  farmerId    String
+  zoneId      String    // Reference to FarmZone
+  cropType    String
+  startDate   DateTime
+  endDate     DateTime?
+  status      String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@map("crop_plans")
+} 

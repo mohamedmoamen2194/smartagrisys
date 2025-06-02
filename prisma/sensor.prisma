@@ -1,0 +1,57 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "./generated/sensor"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("SENSOR_DB_URL")
+}
+
+enum SensorType {
+  SOIL_MOISTURE
+  TEMPERATURE
+  HUMIDITY
+  PH
+  LIGHT
+  RAINFALL
+}
+
+model Sensor {
+  id            String     @id @default(cuid())
+  farmerId      String     // Reference to FarmerDB
+  zoneId        String     // Reference to FarmerDB.FarmZone
+  type          SensorType
+  name          String
+  location      Json       // Coordinates and placement details
+  status        String     // ACTIVE, INACTIVE, MAINTENANCE
+  lastReading   DateTime?
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+
+  readings      SensorReading[]
+
+  @@map("sensors")
+}
+
+model SensorReading {
+  id        String   @id @default(cuid())
+  sensorId  String
+  value     Float
+  unit      String
+  timestamp DateTime @default(now())
+  sensor    Sensor   @relation(fields: [sensorId], references: [id], onDelete: Cascade)
+
+  @@map("sensor_readings")
+}
+
+model Alert {
+  id        String   @id @default(cuid())
+  sensorId  String
+  type      String   // WARNING, CRITICAL, INFO
+  message   String
+  status    String   // NEW, ACKNOWLEDGED, RESOLVED
+  timestamp DateTime @default(now())
+
+  @@map("alerts")
+} 

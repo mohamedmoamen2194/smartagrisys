@@ -1,0 +1,62 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "./generated/logistics"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("LOGISTICS_DB_URL")
+}
+
+enum ShipmentStatus {
+  PENDING
+  SCHEDULED
+  PICKED_UP
+  IN_TRANSIT
+  DELIVERED
+  FAILED
+  CANCELLED
+}
+
+model Shipment {
+  id              String         @id @default(cuid())
+  orderId         String         // Reference to OrderDB
+  status          ShipmentStatus @default(PENDING)
+  trackingNumber  String?
+  carrier         String?
+  pickupAddress   Json           // Farmer's address
+  deliveryAddress Json           // Customer's address
+  scheduledDate   DateTime?
+  deliveredDate   DateTime?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  @@map("shipments")
+}
+
+model DeliveryZone {
+  id          String   @id @default(cuid())
+  name        String
+  coordinates Json     // Geographic boundaries
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("delivery_zones")
+}
+
+model Address {
+  id          String   @id @default(cuid())
+  customerId  String   // Reference to CustomerDB
+  type        String   // BILLING, SHIPPING
+  street      String
+  city        String
+  state       String
+  country     String
+  postalCode  String
+  isDefault   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("addresses")
+} 

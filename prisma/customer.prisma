@@ -1,0 +1,45 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "./generated/customer"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("CUSTOMER_DB_URL")
+}
+
+model Customer {
+  id        String    @id @default(cuid())
+  userId    String    @unique
+  name      String
+  email     String    @unique
+  phone     String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  // Virtual fields for cross-database references
+  orders    String[]  // OrderDB reference
+  addresses String[]  // LogisticsDB reference
+
+  @@map("customers")
+}
+
+model Cart {
+  id         String      @id @default(cuid())
+  customerId String
+  items      CartItem[]
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+
+  @@map("carts")
+}
+
+model CartItem {
+  id        String   @id @default(cuid())
+  cartId    String
+  productId String   // Reference to ProductDB
+  quantity  Int
+  cart      Cart     @relation(fields: [cartId], references: [id], onDelete: Cascade)
+
+  @@map("cart_items")
+} 
