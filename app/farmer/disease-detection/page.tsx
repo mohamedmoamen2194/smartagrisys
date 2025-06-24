@@ -5,7 +5,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { Microscope, AlertTriangle, CheckCircle, Camera, ImageIcon } from "lucide-react"
-import { ImageUploader } from "@/components/image-uploader"
+import { DiseaseImageUploader } from "@/components/disease-image-uploader"
 
 export default function DiseaseDetectionPage() {
   return (
@@ -35,7 +35,7 @@ export default function DiseaseDetectionPage() {
               <CardDescription>Upload an image of your plants for disease detection</CardDescription>
             </CardHeader>
             <CardContent>
-              <ImageUploader />
+              <DiseaseImageUploader />
             </CardContent>
           </Card>
         </TabsContent>

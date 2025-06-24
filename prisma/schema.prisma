@@ -54,6 +54,7 @@ model Farmer {
   inventory   InventoryItem[]
   cropReports CropReport[]
   sensors     Sensor[]
+  diseaseDetections DiseaseDetection[]
 
   @@map("farmers")
 }
@@ -360,12 +361,14 @@ enum ReportType {
 // Disease Detection
 model DiseaseDetection {
   id           String   @id @default(cuid())
-  reportId     String?  @unique
+  farmerId     String
+  farmer       Farmer   @relation(fields: [farmerId], references: [id], onDelete: Cascade)
   diseaseName  String
   severity     String   // LOW, MEDIUM, HIGH
   affectedArea Decimal? @db.Decimal(5, 2) // Percentage
   treatment    Json?    // Treatment recommendations
   createdAt    DateTime @default(now())
+  imageUrl     String?
 
   @@map("disease_detections")
 }
