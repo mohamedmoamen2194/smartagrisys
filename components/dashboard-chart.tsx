@@ -46,25 +46,47 @@ export function DashboardChart() {
   }, []);
 
   if (loading) {
-    return <div className="flex items-center justify-center h-full">Loading...</div>;
+    return <div className="flex items-center justify-center h-full text-sm">Loading...</div>;
   }
 
   if (error) {
-    return <div className="flex items-center justify-center h-full text-red-500">{error}</div>;
+    return <div className="flex items-center justify-center h-full text-red-500 text-sm p-4 text-center">{error}</div>;
   }
 
   if (data.length === 0) {
-    return <div className="flex items-center justify-center h-full text-muted-foreground">No data available</div>;
+    return <div className="flex items-center justify-center h-full text-muted-foreground text-sm">No data available</div>;
   }
 
   return (
     <ResponsiveContainer width="100%" height="100%">
-      <BarChart data={data} margin={{ top: 10, right: 30, left: 0, bottom: 5 }}>
+      <BarChart 
+        data={data} 
+        margin={{ 
+          top: 10, 
+          right: window.innerWidth < 640 ? 10 : 30, 
+          left: window.innerWidth < 640 ? 0 : 10, 
+          bottom: 5 
+        }}
+      >
         <CartesianGrid strokeDasharray="3 3" />
-        <XAxis dataKey="name" tick={{ fontSize: 12 }} />
-        <YAxis tick={{ fontSize: 12 }} />
-        <Tooltip />
-        <Legend wrapperStyle={{ fontSize: "12px", paddingTop: "10px" }} />
+        <XAxis 
+          dataKey="name" 
+          tick={{ fontSize: window.innerWidth < 640 ? 10 : 12 }} 
+          interval={window.innerWidth < 640 ? 1 : 0}
+        />
+        <YAxis tick={{ fontSize: window.innerWidth < 640 ? 10 : 12 }} />
+        <Tooltip 
+          contentStyle={{ 
+            fontSize: window.innerWidth < 640 ? '12px' : '14px',
+            padding: window.innerWidth < 640 ? '8px' : '12px'
+          }} 
+        />
+        <Legend 
+          wrapperStyle={{ 
+            fontSize: window.innerWidth < 640 ? "10px" : "12px", 
+            paddingTop: "10px" 
+          }} 
+        />
         <Bar dataKey="sales" fill="#22c55e" name="Sales" />
         <Bar dataKey="expenses" fill="#94a3b8" name="Expenses" />
       </BarChart>

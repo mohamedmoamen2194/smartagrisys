@@ -43,6 +43,8 @@ model Farmer {
   userId      String  @unique
   farmName    String
   farmAddress String
+  farmCountry String?
+  farmState   String?
   farmSize    Float? // in acres
   description String? @db.Text
   
@@ -176,6 +178,7 @@ enum OrderStatus {
   DELIVERED
   CANCELLED
   REFUNDED
+  REJECTED
 }
 
 enum PaymentStatus {

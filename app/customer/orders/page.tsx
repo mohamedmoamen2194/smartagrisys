@@ -5,29 +5,46 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
-import { Package, Truck, CheckCircle, Clock, AlertCircle } from "lucide-react"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Package, Truck, CheckCircle, Clock, AlertCircle, MapPin, CreditCard, Calendar } from "lucide-react"
 
-type DashboardStats = {
-  totalOrders: number;
-  inTransitOrders: number;
-  deliveredOrders: number;
-  totalSpent: number;
-};
+type OrderItem = {
+  id: string
+  quantity: number
+  unitPrice: number
+  total: number
+  product: {
+    id: string
+    name: string
+    price: number
+  }
+}
 
 type Order = {
-  id: string;
-  date: string;
-  status: string;
-  total: number;
-  items: Array<{
-    name: string;
-    quantity: number;
-    price: number;
-  }>;
-  farmer: string;
-  deliveryDate: string;
-};
+  id: string
+  orderNumber: string
+  status: string
+  paymentStatus: string
+  subtotal: number
+  shippingCost: number
+  total: number
+  shippingAddress: any
+  paymentMethod: string
+  createdAt: string
+  farmer: {
+    id: string
+    farmName: string
+  }
+  orderItems: OrderItem[]
+}
+
+type DashboardStats = {
+  totalOrders: number
+  inTransitOrders: number
+  deliveredOrders: number
+  totalSpent: number
+}
 
 export default function CustomerOrdersPage() {
   const [stats, setStats] = useState<DashboardStats>({
@@ -39,9 +56,11 @@ export default function CustomerOrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [showOrderModal, setShowOrderModal] = useState(false);
 
   useEffect(() => {
-    const fetchStats = async () => {
+    const fetchOrders = async () => {
       try {
         const user = localStorage.getItem('user');
         if (!user) {
@@ -49,27 +68,125 @@ export default function CustomerOrdersPage() {
           return;
         }
 
-        const response = await fetch('/api/dashboard/stats', {
+        const response = await fetch('/api/orders', {
           headers: {
             'authorization': user
           }
         });
 
         if (!response.ok) {
-          throw new Error('Failed to fetch order statistics');
+          throw new Error('Failed to fetch orders');
         }
 
         const data = await response.json();
-        setStats(data);
+        setOrders(data);
+
+        // Calculate stats
+        const totalOrders = data.length;
+        const inTransitOrders = data.filter((order: Order) => 
+          order.status === 'SHIPPED' || order.status === 'PROCESSING'
+        ).length;
+        const deliveredOrders = data.filter((order: Order) => 
+          order.status === 'DELIVERED'
+        ).length;
+        const totalSpent = data.filter((order: Order) => order.status !== "CANCELLED").reduce((sum: number, order: Order) => sum + Number(order.total), 0);
+
+        setStats({
+          totalOrders,
+          inTransitOrders,
+          deliveredOrders,
+          totalSpent
+        });
+
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to fetch statistics');
+        setError(err instanceof Error ? err.message : 'Failed to fetch orders');
       } finally {
         setLoading(false);
       }
     };
 
-    fetchStats();
+    fetchOrders();
   }, []);
+
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case 'DELIVERED':
+        return <CheckCircle className="mr-1 h-3 w-3" />
+      case 'SHIPPED':
+      case 'PROCESSING':
+        return <Truck className="mr-1 h-3 w-3" />
+      case 'PENDING':
+        return <Clock className="mr-1 h-3 w-3" />
+      default:
+        return <Package className="mr-1 h-3 w-3" />
+    }
+  }
+
+  const getStatusVariant = (status: string) => {
+    switch (status) {
+      case 'DELIVERED':
+        return 'default'
+      case 'SHIPPED':
+      case 'PROCESSING':
+        return 'secondary'
+      case 'PENDING':
+        return 'outline'
+      default:
+        return 'outline'
+    }
+  }
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+  }
+
+  const formatDateTime = (dateString: string) => {
+    return new Date(dateString).toLocaleString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  }
+
+  const handleViewOrder = (order: Order) => {
+    setSelectedOrder(order);
+    setShowOrderModal(true);
+  }
+
+  const handleReorder = (order: Order) => {
+    // Add items to cart
+    order.orderItems.forEach(item => {
+      const existingCart = JSON.parse(localStorage.getItem('cart') || '[]');
+      const existingItem = existingCart.find((cartItem: any) => cartItem.productId === item.product.id);
+      
+      if (existingItem) {
+        existingItem.quantity += item.quantity;
+      } else {
+        existingCart.push({
+          productId: item.product.id,
+          name: item.product.name,
+          price: item.product.price,
+          quantity: item.quantity,
+          farmerId: order.farmer.id
+        });
+      }
+      
+      localStorage.setItem('cart', JSON.stringify(existingCart));
+    });
+    
+    // Navigate to cart
+    window.location.href = '/customer/cart';
+  }
+
+  if (loading) {
+    return <div className="container mx-auto py-6">Loading orders...</div>
+  }
 
   return (
     <div className="container mx-auto py-6">
@@ -120,7 +237,7 @@ export default function CustomerOrdersPage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Spent</CardTitle>
-            <Package className="h-4 w-4 text-green-600" />
+            <Package className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">${stats.totalSpent.toFixed(2)}</div>
@@ -130,64 +247,212 @@ export default function CustomerOrdersPage() {
       </div>
 
       <div className="space-y-4 mt-6">
-        {orders.map((order) => (
-          <Card key={order.id}>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle className="text-lg">Order {order.id}</CardTitle>
-                  <CardDescription>Placed on {order.date}</CardDescription>
-                </div>
-                <Badge
-                  variant={
-                    order.status === "delivered" ? "default" : order.status === "shipped" ? "secondary" : "outline"
-                  }
-                >
-                  {order.status === "delivered" && <CheckCircle className="mr-1 h-3 w-3" />}
-                  {order.status === "shipped" && <Truck className="mr-1 h-3 w-3" />}
-                  {order.status === "processing" && <Clock className="mr-1 h-3 w-3" />}
-                  {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
-                </Badge>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {order.items.map((item, index) => (
-                  <div key={index} className="flex justify-between items-center">
-                    <div>
-                      <p className="font-medium">{item.name}</p>
-                      <p className="text-sm text-muted-foreground">Quantity: {item.quantity}</p>
-                    </div>
-                    <p className="font-medium">${(item.quantity * item.price).toFixed(2)}</p>
-                  </div>
-                ))}
-                <Separator />
-                <div className="flex justify-between items-center">
-                  <div>
-                    <p className="text-sm text-muted-foreground">From {order.farmer}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {order.status === "delivered" ? "Delivered" : "Expected delivery"}: {order.deliveryDate}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <p className="font-medium">Total: ${order.total.toFixed(2)}</p>
-                  </div>
-                </div>
-                <div className="flex gap-2 pt-2">
-                  <Button variant="outline" size="sm">
-                    View Details
-                  </Button>
-                  {order.status === "delivered" && (
-                    <Button variant="outline" size="sm">
-                      Reorder
-                    </Button>
-                  )}
-                </div>
-              </div>
+        {orders.length === 0 ? (
+          <Card>
+            <CardContent className="flex flex-col items-center justify-center py-8">
+              <Package className="h-12 w-12 text-muted-foreground mb-4" />
+              <h3 className="text-lg font-medium mb-2">No orders yet</h3>
+              <p className="text-muted-foreground text-center mb-4">
+                Start shopping to see your order history here
+              </p>
+              <Button asChild>
+                <a href="/customer/shop">Browse Products</a>
+              </Button>
             </CardContent>
           </Card>
-        ))}
+        ) : (
+          orders.map((order) => (
+            <Card key={order.id}>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="text-lg">{order.orderNumber}</CardTitle>
+                    <CardDescription>Placed on {formatDate(order.createdAt)}</CardDescription>
+                  </div>
+                  <Badge variant={getStatusVariant(order.status)}>
+                    {getStatusIcon(order.status)}
+                    {order.status.charAt(0).toUpperCase() + order.status.slice(1).toLowerCase()}
+                  </Badge>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {order.orderItems.map((item) => (
+                    <div key={item.id} className="flex justify-between items-center">
+                      <div>
+                        <p className="font-medium">{item.product.name}</p>
+                        <p className="text-sm text-muted-foreground">Quantity: {item.quantity}</p>
+                      </div>
+                      <p className="font-medium">${Number(item.total).toFixed(2)}</p>
+                    </div>
+                  ))}
+                  <Separator />
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <p className="text-sm text-muted-foreground">From {order.farmer.farmName}</p>
+                      <p className="text-sm text-muted-foreground">
+                        Payment: {order.paymentMethod.toUpperCase()}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-medium">Total: ${Number(order.total).toFixed(2)}</p>
+                    </div>
+                  </div>
+                  <div className="flex gap-2 pt-2">
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => handleViewOrder(order)}
+                    >
+                      View Details
+                    </Button>
+                    {order.status === "DELIVERED" && (
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => handleReorder(order)}
+                      >
+                        Reorder
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))
+        )}
       </div>
+
+      {/* Order Details Modal */}
+      <Dialog open={showOrderModal} onOpenChange={setShowOrderModal}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Package className="h-5 w-5" />
+              Order Details - {selectedOrder?.orderNumber}
+            </DialogTitle>
+          </DialogHeader>
+          
+          {selectedOrder && (
+            <div className="space-y-6">
+              {/* Order Status */}
+              <div className="flex items-center justify-between p-4 bg-muted rounded-lg">
+                <div>
+                  <p className="font-medium">Order Status</p>
+                  <p className="text-sm text-muted-foreground">
+                    {selectedOrder.status.charAt(0).toUpperCase() + selectedOrder.status.slice(1).toLowerCase()}
+                  </p>
+                </div>
+                <Badge variant={getStatusVariant(selectedOrder.status)}>
+                  {getStatusIcon(selectedOrder.status)}
+                  {selectedOrder.status.charAt(0).toUpperCase() + selectedOrder.status.slice(1).toLowerCase()}
+                </Badge>
+              </div>
+
+              {/* Order Information */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Calendar className="h-4 w-4" />
+                    Order Date
+                  </div>
+                  <p className="font-medium">{formatDateTime(selectedOrder.createdAt)}</p>
+                </div>
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <CreditCard className="h-4 w-4" />
+                    Payment Method
+                  </div>
+                  <p className="font-medium">{selectedOrder.paymentMethod.toUpperCase()}</p>
+                </div>
+              </div>
+
+              {/* Farmer Information */}
+              <div className="p-4 bg-muted rounded-lg">
+                <h3 className="font-medium mb-2">Farmer</h3>
+                <p className="text-sm">{selectedOrder.farmer.farmName}</p>
+              </div>
+
+              {/* Shipping Address */}
+              {selectedOrder.shippingAddress && (
+                <div className="p-4 bg-muted rounded-lg">
+                  <h3 className="font-medium mb-2 flex items-center gap-2">
+                    <MapPin className="h-4 w-4" />
+                    Shipping Address
+                  </h3>
+                  <div className="text-sm space-y-1">
+                    <p>{selectedOrder.shippingAddress.fullName}</p>
+                    <p>{selectedOrder.shippingAddress.address}</p>
+                    <p>
+                      {selectedOrder.shippingAddress.city}, {selectedOrder.shippingAddress.state} {selectedOrder.shippingAddress.zipCode}
+                    </p>
+                    <p>{selectedOrder.shippingAddress.country}</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Order Items */}
+              <div>
+                <h3 className="font-medium mb-3">Order Items</h3>
+                <div className="space-y-3">
+                  {selectedOrder.orderItems.map((item) => (
+                    <div key={item.id} className="flex justify-between items-center p-3 border rounded-lg">
+                      <div>
+                        <p className="font-medium">{item.product.name}</p>
+                        <p className="text-sm text-muted-foreground">
+                          Quantity: {item.quantity} × ${Number(item.unitPrice).toFixed(2)}
+                        </p>
+                      </div>
+                      <p className="font-medium">${Number(item.total).toFixed(2)}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Order Summary */}
+              <div className="border-t pt-4">
+                <div className="space-y-2">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Subtotal:</span>
+                    <span>${Number(selectedOrder.subtotal).toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Shipping:</span>
+                    <span>${Number(selectedOrder.shippingCost).toFixed(2)}</span>
+                  </div>
+                  <Separator />
+                  <div className="flex justify-between font-medium text-lg">
+                    <span>Total:</span>
+                    <span>${Number(selectedOrder.total).toFixed(2)}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex gap-2 pt-4">
+                <Button 
+                  variant="outline" 
+                  onClick={() => setShowOrderModal(false)}
+                  className="flex-1"
+                >
+                  Close
+                </Button>
+                {selectedOrder.status === "DELIVERED" && (
+                  <Button 
+                    onClick={() => {
+                      handleReorder(selectedOrder);
+                      setShowOrderModal(false);
+                    }}
+                    className="flex-1"
+                  >
+                    Reorder
+                  </Button>
+                )}
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

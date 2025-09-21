@@ -44,23 +44,20 @@ export default function CropRecommendationPage() {
     setError(null)
 
     try {
-      // Convert form data to the format expected by the model
-      const features = [
-        parseFloat(formData.nitrogen),
-        parseFloat(formData.phosphorus),
-        parseFloat(formData.potassium),
-        parseFloat(formData.temperature),
-        parseFloat(formData.humidity),
-        parseFloat(formData.ph),
-        parseFloat(formData.rainfall)
-      ]
-
       const response = await fetch("/api/ai/crop-recommendation", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ features }),
+        body: JSON.stringify({
+          nitrogen: parseFloat(formData.nitrogen),
+          phosphorus: parseFloat(formData.phosphorus),
+          potassium: parseFloat(formData.potassium),
+          temperature: parseFloat(formData.temperature),
+          humidity: parseFloat(formData.humidity),
+          ph: parseFloat(formData.ph),
+          rainfall: parseFloat(formData.rainfall),
+        }),
       })
 
       if (!response.ok) {
@@ -233,10 +230,10 @@ export default function CropRecommendationPage() {
             <CardContent className="space-y-4">
               <div className="text-center p-6 bg-green-50 rounded-lg dark:bg-green-900/20">
                 <div className="text-4xl font-bold text-green-600 dark:text-green-400 mb-2">
-                  {result.crop}
+                  {result.recommendedCrop || result.crop}
                 </div>
                 <p className="text-green-700 dark:text-green-300">
-                  This crop is well-suited for your current conditions
+                  {result.reasoning || `This crop is well-suited for your current conditions`}
                 </p>
               </div>
 

@@ -45,7 +45,6 @@ export async function PUT(
     const updatedInventory = await prisma.inventoryItem.update({
       where: {
         id: params.id,
-        farmerId: farmer.id,
       },
       data: {
         quantity,
@@ -79,12 +78,33 @@ export async function DELETE(
       return NextResponse.json({ error: 'Farmer profile not found' }, { status: 404 });
     }
 
+    // Check if the inventory item exists for this farmer
+    const item = await prisma.inventoryItem.findUnique({
+      where: {
+        id: params.id,
+      },
+    });
+    if (!item) {
+      return NextResponse.json({ error: 'Inventory item not found' }, { status: 404 });
+    }
+
+    // Delete the inventory item
     await prisma.inventoryItem.delete({
       where: {
         id: params.id,
-        farmerId: farmer.id,
       },
     });
+
+    // Check if any inventory items remain for the product
+    const remaining = await prisma.inventoryItem.count({
+      where: { productId: item.productId }
+    });
+    if (remaining === 0) {
+      await prisma.product.update({
+        where: { id: item.productId },
+        data: { isActive: false }
+      });
+    }
 
     return NextResponse.json({ message: 'Inventory item deleted successfully' });
   } catch (error) {

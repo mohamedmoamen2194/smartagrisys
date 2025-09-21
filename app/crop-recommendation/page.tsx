@@ -6,8 +6,64 @@ import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
 import { CloudRain, Thermometer, Gauge } from "lucide-react"
 import { CropRecommendationChat } from "@/components/crop-recommendation-chat"
+import { useState } from "react"
 
 export default function CropRecommendationPage() {
+  // Add form state for manual analysis
+  const [manualForm, setManualForm] = useState({
+    nitrogen: "",
+    phosphorus: "",
+    potassium: "",
+    temperature: "",
+    humidity: "",
+    ph: "",
+    rainfall: "",
+  })
+  const [manualLoading, setManualLoading] = useState(false)
+  const [manualError, setManualError] = useState<string | null>(null)
+  const [manualResult, setManualResult] = useState<any>(null)
+
+  const handleManualInput = (field: string, value: string) => {
+    setManualForm((prev) => ({ ...prev, [field]: value }))
+  }
+
+  const handleManualSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setManualError(null)
+    setManualResult(null)
+    // Validate all fields
+    if (Object.values(manualForm).some((v) => !v)) {
+      setManualError("Please fill in all fields.")
+      return
+    }
+    setManualLoading(true)
+    try {
+      const response = await fetch("/api/ai/crop-recommendation", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          nitrogen: parseFloat(manualForm.nitrogen),
+          phosphorus: parseFloat(manualForm.phosphorus),
+          potassium: parseFloat(manualForm.potassium),
+          temperature: parseFloat(manualForm.temperature),
+          humidity: parseFloat(manualForm.humidity),
+          ph: parseFloat(manualForm.ph),
+          rainfall: parseFloat(manualForm.rainfall),
+        }),
+      })
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || "Failed to get crop recommendation")
+      }
+      const data = await response.json()
+      setManualResult(data)
+    } catch (err: any) {
+      setManualError(err.message || "An error occurred during analysis")
+    } finally {
+      setManualLoading(false)
+    }
+  }
+
   return (
     <div className="container mx-auto py-6">
       <div className="flex items-center justify-between">
@@ -73,45 +129,54 @@ export default function CropRecommendationPage() {
               <CardDescription>Enter your soil parameters for crop recommendations</CardDescription>
             </CardHeader>
             <CardContent>
-              <form className="grid gap-4 py-4">
+              <form className="grid gap-4 py-4" onSubmit={handleManualSubmit}>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="nitrogen">Nitrogen (N)</Label>
-                    <Input id="nitrogen" placeholder="e.g., 40" />
+                    <Input id="nitrogen" placeholder="e.g., 40" value={manualForm.nitrogen} onChange={e => handleManualInput("nitrogen", e.target.value)} />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="phosphorus">Phosphorus (P)</Label>
-                    <Input id="phosphorus" placeholder="e.g., 50" />
+                    <Input id="phosphorus" placeholder="e.g., 50" value={manualForm.phosphorus} onChange={e => handleManualInput("phosphorus", e.target.value)} />
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="potassium">Potassium (K)</Label>
-                    <Input id="potassium" placeholder="e.g., 60" />
+                    <Input id="potassium" placeholder="e.g., 60" value={manualForm.potassium} onChange={e => handleManualInput("potassium", e.target.value)} />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="ph">pH Level</Label>
-                    <Input id="ph" placeholder="e.g., 6.5" />
+                    <Input id="ph" placeholder="e.g., 6.5" value={manualForm.ph} onChange={e => handleManualInput("ph", e.target.value)} />
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="rainfall">Rainfall (mm)</Label>
-                    <Input id="rainfall" placeholder="e.g., 120" />
+                    <Input id="rainfall" placeholder="e.g., 120" value={manualForm.rainfall} onChange={e => handleManualInput("rainfall", e.target.value)} />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="temperature">Temperature (°C)</Label>
-                    <Input id="temperature" placeholder="e.g., 24" />
+                    <Input id="temperature" placeholder="e.g., 24" value={manualForm.temperature} onChange={e => handleManualInput("temperature", e.target.value)} />
                   </div>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="humidity">Humidity (%)</Label>
-                  <Input id="humidity" placeholder="e.g., 65" />
+                  <Input id="humidity" placeholder="e.g., 65" value={manualForm.humidity} onChange={e => handleManualInput("humidity", e.target.value)} />
                 </div>
+                {manualError && <div className="text-red-500 text-sm">{manualError}</div>}
+                {manualResult && (
+                  <div className="p-4 bg-green-50 rounded-lg dark:bg-green-900/20 text-center">
+                    <div className="text-2xl font-bold text-green-600 dark:text-green-400 mb-2">
+                      Recommended Crop: {manualResult.recommendedCrop || manualResult.crop}
+                    </div>
+                    {manualResult.reasoning && <div className="text-green-700 dark:text-green-300 mb-2">{manualResult.reasoning}</div>}
+                  </div>
+                )}
               </form>
             </CardContent>
             <CardFooter>
-              <Button className="w-full">Get Recommendation</Button>
+              <Button className="w-full" type="submit" disabled={manualLoading}>{manualLoading ? "Getting Recommendation..." : "Get Recommendation"}</Button>
             </CardFooter>
           </Card>
         </TabsContent>

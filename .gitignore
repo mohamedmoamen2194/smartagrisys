@@ -43,3 +43,15 @@ logs/
 # OS
 .DS_Store
 Thumbs.db
+
+# Archives and backups
+*.zip
+*.rar
+*.tar.gz
+
+# Deployment configs for other platforms
+netlify.toml
+vercel.json
+
+# React App files (not needed for Next.js)
+react-app-env.d.ts

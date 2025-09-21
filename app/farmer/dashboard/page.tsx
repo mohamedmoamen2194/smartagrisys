@@ -101,7 +101,7 @@ export default function FarmerDashboardPage() {
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">${stats.totalRevenue.toFixed(2)}</div>
+            <div className="text-2xl font-bold">${Number(stats.totalRevenue).toFixed(2)}</div>
             <p className="text-xs text-muted-foreground">From {stats.totalOrders} orders</p>
           </CardContent>
         </Card>

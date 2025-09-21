@@ -7,16 +7,6 @@ type User = {
   role: string;
 };
 
-type OrderStatus = 'PENDING' | 'PROCESSING' | 'SHIPPED' | 'DELIVERED' | 'CANCELLED';
-
-type OrderStats = {
-  status: OrderStatus;
-  _count: number;
-  _sum: {
-    total: number | null;
-  } | null;
-};
-
 async function getUserFromRequest(): Promise<User | null> {
   try {
     const headersList = await headers();
@@ -73,7 +63,7 @@ export async function GET() {
         _sum: {
           total: true
         }
-      }) as OrderStats[];
+      });
 
       // Get inventory statistics
       const inventory = await prisma.inventoryItem.aggregate({
@@ -91,17 +81,20 @@ export async function GET() {
         where: {
           farmerId: farmer.id,
           quantity: {
-            lte: prisma.inventoryItem.fields.threshold
+            lte: prisma.inventoryItem.fields.minThreshold
           }
         }
       });
 
       // Calculate statistics
-      stats.totalRevenue = orders.reduce((sum: number, order: OrderStats) => sum + (order._sum?.total || 0), 0);
-      stats.totalOrders = orders.reduce((sum: number, order: OrderStats) => sum + order._count, 0);
-      stats.pendingOrders = orders.find((order: OrderStats) => order.status === 'PENDING')?._count || 0;
-      stats.inTransitOrders = orders.find((order: OrderStats) => order.status === 'SHIPPED')?._count || 0;
-      stats.deliveredOrders = orders.find((order: OrderStats) => order.status === 'DELIVERED')?._count || 0;
+      stats.totalRevenue = Array.isArray(orders)
+        ? orders.filter((order) => order.status === 'DELIVERED')
+            .reduce((sum, order) => sum + Number(order._sum?.total ?? 0), 0)
+        : 0;
+      stats.totalOrders = orders.reduce((sum: number, order: any) => sum + order._count, 0);
+      stats.pendingOrders = orders.find((order: any) => order.status === 'PENDING')?._count || 0;
+      stats.inTransitOrders = orders.find((order: any) => order.status === 'SHIPPED')?._count || 0;
+      stats.deliveredOrders = orders.find((order: any) => order.status === 'DELIVERED')?._count || 0;
       stats.inventoryItems = inventory._count;
       stats.lowStockItems = lowStockItems;
 
@@ -124,13 +117,13 @@ export async function GET() {
         _sum: {
           total: true
         }
-      }) as OrderStats[];
+      });
 
       // Calculate statistics
-      stats.totalSpent = orders.reduce((sum: number, order: OrderStats) => sum + (order._sum?.total || 0), 0);
-      stats.totalOrders = orders.reduce((sum: number, order: OrderStats) => sum + order._count, 0);
-      stats.inTransitOrders = orders.find((order: OrderStats) => order.status === 'SHIPPED')?._count || 0;
-      stats.deliveredOrders = orders.find((order: OrderStats) => order.status === 'DELIVERED')?._count || 0;
+      stats.totalSpent = orders.reduce((sum: number, order: any) => sum + Number(order._sum?.total ?? 0), 0);
+      stats.totalOrders = orders.reduce((sum: number, order: any) => sum + order._count, 0);
+      stats.inTransitOrders = orders.find((order: any) => order.status === 'SHIPPED')?._count || 0;
+      stats.deliveredOrders = orders.find((order: any) => order.status === 'DELIVERED')?._count || 0;
     }
 
     return NextResponse.json(stats);

@@ -55,23 +55,26 @@ export function ImageUploader() {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3 sm:space-y-4">
       {!image ? (
         <div
-          className={`border-2 border-dashed rounded-lg p-6 flex flex-col items-center justify-center h-64 ${
+          className={`border-2 border-dashed rounded-lg p-4 sm:p-6 flex flex-col items-center justify-center h-48 sm:h-64 ${
             isDragging ? "border-primary bg-primary/5" : "border-muted-foreground/25"
           }`}
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
         >
-          <Upload className="h-10 w-10 text-muted-foreground mb-4" />
-          <p className="text-sm text-muted-foreground mb-2">Drag and drop an image here, or click to select</p>
+          <Upload className="h-8 w-8 sm:h-10 sm:w-10 text-muted-foreground mb-3 sm:mb-4" />
+          <p className="text-xs sm:text-sm text-muted-foreground mb-2 text-center px-2">
+            <span className="hidden sm:inline">Drag and drop an image here, or click to select</span>
+            <span className="sm:hidden">Tap to select an image</span>
+          </p>
           <input type="file" accept="image/*" className="hidden" id="image-upload" onChange={handleFileChange} />
-          <label htmlFor="image-upload">
-            <Button variant="secondary" size="sm" className="cursor-pointer" as="span">
+          <label htmlFor="image-upload" className="cursor-pointer">
+            <div className="inline-flex items-center justify-center rounded-md text-xs sm:text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-secondary text-secondary-foreground hover:bg-secondary/80 h-9 px-3">
               Select Image
-            </Button>
+            </div>
           </label>
         </div>
       ) : (
@@ -79,17 +82,24 @@ export function ImageUploader() {
           <img
             src={image || "/placeholder.svg"}
             alt="Uploaded fruit"
-            className="w-full h-64 object-contain rounded-lg border"
+            className="w-full h-48 sm:h-64 object-contain rounded-lg border"
           />
-          <Button variant="destructive" size="icon" className="absolute top-2 right-2" onClick={removeImage}>
-            <X className="h-4 w-4" />
+          <Button 
+            variant="destructive" 
+            size="sm" 
+            className="absolute top-2 right-2 h-8 w-8 p-0" 
+            onClick={removeImage}
+          >
+            <X className="h-3 w-3 sm:h-4 sm:w-4" />
           </Button>
         </div>
       )}
 
       {image && (
-        <Button className="w-full">
-          <Ruler className="mr-2 h-4 w-4" /> Analyze Size
+        <Button className="w-full text-sm">
+          <Ruler className="mr-2 h-4 w-4" /> 
+          <span className="hidden sm:inline">Analyze Size</span>
+          <span className="sm:hidden">Analyze</span>
         </Button>
       )}
     </div>

@@ -1,55 +1,132 @@
+"use client"
+
+import { useEffect, useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { ShoppingCart, Search, Eye, Package, Truck } from "lucide-react"
+import { ShoppingCart, Search, Eye, Package, Truck, XCircle } from "lucide-react"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
+import { toast } from "sonner"
 
-const orders = [
-  {
-    id: "ORD-001",
-    customer: "John Smith",
-    product: "Apples (Grade A)",
-    quantity: 25,
-    total: 75.0,
-    status: "pending",
-    date: "2025-06-01",
-    address: "123 Main St, City",
-  },
-  {
-    id: "ORD-002",
-    customer: "Sarah Johnson",
-    product: "Corn (Organic)",
-    quantity: 50,
-    total: 124.5,
-    status: "processing",
-    date: "2025-06-01",
-    address: "456 Oak Ave, Town",
-  },
-  {
-    id: "ORD-003",
-    customer: "Michael Brown",
-    product: "Tomatoes (Grade A)",
-    quantity: 15,
-    total: 64.35,
-    status: "shipped",
-    date: "2025-05-31",
-    address: "789 Pine Rd, Village",
-  },
-  {
-    id: "ORD-004",
-    customer: "Emily Davis",
-    product: "Mixed Vegetables",
-    quantity: 30,
-    total: 89.7,
-    status: "delivered",
-    date: "2025-05-30",
-    address: "321 Elm St, City",
-  },
-]
+const STATUS_OPTIONS = ["PENDING", "PROCESSING", "SHIPPED", "DELIVERED", "CANCELLED"]
 
 export default function OrdersPage() {
+  const [orders, setOrders] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [tab, setTab] = useState("all")
+  const [selectedOrder, setSelectedOrder] = useState(null)
+  const [statusUpdating, setStatusUpdating] = useState(false)
+
+  useEffect(() => {
+    const fetchOrders = async () => {
+      setLoading(true)
+      try {
+        const user = localStorage.getItem("user")
+        if (!user) return
+        const res = await fetch("/api/farmer/orders", {
+          headers: { authorization: user }
+        })
+        const data = await res.json()
+        console.log('Farmer orders API response:', data)
+        if (Array.isArray(data)) {
+          setOrders(data)
+        } else {
+          setOrders([])
+          toast.error(data.error || "Failed to fetch orders")
+        }
+      } catch (e) {
+        setOrders([])
+        toast.error("Failed to fetch orders")
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchOrders()
+  }, [])
+
+  const filteredOrders = orders.filter(order => {
+    if (tab === "all") return true
+    return order.status === tab.toUpperCase()
+  })
+
+  const handleView = (order) => setSelectedOrder(order)
+  const handleClose = () => setSelectedOrder(null)
+
+  const handleStatusChange = async (e) => {
+    const newStatus = e.target.value
+    setStatusUpdating(true)
+    try {
+      const user = localStorage.getItem("user")
+      const res = await fetch("/api/farmer/orders", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", authorization: user },
+        body: JSON.stringify({ orderId: selectedOrder.id, status: newStatus })
+      })
+      if (!res.ok) throw new Error()
+      const updated = await res.json()
+      setOrders(orders => orders.map(o => o.id === updated.order.id ? updated.order : o))
+      setSelectedOrder(updated.order)
+      toast.success("Order status updated")
+    } catch {
+      toast.error("Failed to update status")
+    } finally {
+      setStatusUpdating(false)
+    }
+  }
+
+  const handleReject = async (order) => {
+    if (!confirm(`Are you sure you want to cancel order ${order.orderNumber}? This action cannot be undone.`)) {
+      return
+    }
+
+    setStatusUpdating(true)
+    try {
+      const user = localStorage.getItem("user")
+      const res = await fetch("/api/farmer/orders", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", authorization: user },
+        body: JSON.stringify({ orderId: order.id, status: "CANCELLED" })
+      })
+      if (!res.ok) throw new Error()
+      const updated = await res.json()
+      setOrders(orders => orders.map(o => o.id === updated.order.id ? updated.order : o))
+      toast.success("Order cancelled successfully")
+    } catch {
+      toast.error("Failed to cancel order")
+    } finally {
+      setStatusUpdating(false)
+    }
+  }
+
+  const getStatusVariant = (status) => {
+    switch (status) {
+      case "PENDING":
+        return "outline"
+      case "PROCESSING":
+        return "secondary"
+      case "SHIPPED":
+        return "default"
+      case "DELIVERED":
+        return "default"
+      case "CANCELLED":
+        return "destructive"
+      default:
+        return "outline"
+    }
+  }
+
+  const getStatusIcon = (status) => {
+    switch (status) {
+      case "CANCELLED":
+        return <XCircle className="mr-1 h-3 w-3" />
+      default:
+        return null
+    }
+  }
+
   return (
     <div className="container mx-auto py-6">
       <div className="flex items-center justify-between">
@@ -64,7 +141,7 @@ export default function OrdersPage() {
             <ShoppingCart className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">127</div>
+            <div className="text-2xl font-bold">{orders.length}</div>
             <p className="text-xs text-muted-foreground">This month</p>
           </CardContent>
         </Card>
@@ -74,7 +151,7 @@ export default function OrdersPage() {
             <Package className="h-4 w-4 text-yellow-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">12</div>
+            <div className="text-2xl font-bold">{orders.filter(o => o.status === "PENDING").length}</div>
             <p className="text-xs text-muted-foreground">Awaiting processing</p>
           </CardContent>
         </Card>
@@ -84,7 +161,7 @@ export default function OrdersPage() {
             <Truck className="h-4 w-4 text-blue-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">8</div>
+            <div className="text-2xl font-bold">{orders.filter(o => o.status === "SHIPPED").length}</div>
             <p className="text-xs text-muted-foreground">In transit</p>
           </CardContent>
         </Card>
@@ -94,25 +171,26 @@ export default function OrdersPage() {
             <ShoppingCart className="h-4 w-4 text-green-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">$3,247</div>
+            <div className="text-2xl font-bold">${orders.filter(o => o.status === "DELIVERED").reduce((sum, o) => sum + Number(o.total || 0), 0).toLocaleString()}</div>
             <p className="text-xs text-muted-foreground">This month</p>
           </CardContent>
         </Card>
       </div>
 
-      <Tabs defaultValue="all" className="mt-6">
+      <Tabs defaultValue="all" value={tab} onValueChange={setTab} className="mt-6">
         <TabsList>
           <TabsTrigger value="all">All Orders</TabsTrigger>
           <TabsTrigger value="pending">Pending</TabsTrigger>
           <TabsTrigger value="processing">Processing</TabsTrigger>
           <TabsTrigger value="shipped">Shipped</TabsTrigger>
           <TabsTrigger value="delivered">Delivered</TabsTrigger>
+          <TabsTrigger value="cancelled">Cancelled</TabsTrigger>
         </TabsList>
-        <TabsContent value="all" className="space-y-4">
+        <TabsContent value={tab} className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>All Orders</CardTitle>
-              <CardDescription>Manage all customer orders</CardDescription>
+              <CardTitle>Orders</CardTitle>
+              <CardDescription>Manage customer orders</CardDescription>
               <div className="flex items-center space-x-2">
                 <div className="relative flex-1 max-w-sm">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -127,7 +205,7 @@ export default function OrdersPage() {
                     <TableRow>
                       <TableHead>Order ID</TableHead>
                       <TableHead>Customer</TableHead>
-                      <TableHead>Product</TableHead>
+                      <TableHead>Product(s)</TableHead>
                       <TableHead className="text-right">Quantity</TableHead>
                       <TableHead className="text-right">Total</TableHead>
                       <TableHead>Status</TableHead>
@@ -136,34 +214,46 @@ export default function OrdersPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {orders.map((order) => (
+                    {loading ? (
+                      <TableRow><TableCell colSpan={8}>Loading...</TableCell></TableRow>
+                    ) : filteredOrders.length === 0 ? (
+                      <TableRow><TableCell colSpan={8}>No orders found.</TableCell></TableRow>
+                    ) : filteredOrders.map((order) => (
                       <TableRow key={order.id}>
-                        <TableCell className="font-medium">{order.id}</TableCell>
-                        <TableCell>{order.customer}</TableCell>
-                        <TableCell>{order.product}</TableCell>
-                        <TableCell className="text-right">{order.quantity}</TableCell>
-                        <TableCell className="text-right">${order.total.toFixed(2)}</TableCell>
+                        <TableCell className="font-medium">{order.orderNumber}</TableCell>
+                        <TableCell>{order.customer?.user?.firstName} {order.customer?.user?.lastName}</TableCell>
                         <TableCell>
-                          <Badge
-                            variant={
-                              order.status === "pending"
-                                ? "outline"
-                                : order.status === "processing"
-                                  ? "secondary"
-                                  : order.status === "shipped"
-                                    ? "default"
-                                    : "default"
-                            }
-                          >
+                          {order.orderItems.map((item) => item.product?.name).join(", ")}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {order.orderItems.reduce((sum, item) => sum + item.quantity, 0)}
+                        </TableCell>
+                        <TableCell className="text-right">${Number(order.total).toFixed(2)}</TableCell>
+                        <TableCell>
+                          <Badge variant={getStatusVariant(order.status)}>
+                            {getStatusIcon(order.status)}
                             {order.status}
                           </Badge>
                         </TableCell>
-                        <TableCell>{order.date}</TableCell>
+                        <TableCell>{new Date(order.createdAt).toLocaleDateString()}</TableCell>
                         <TableCell className="text-right">
-                          <Button variant="outline" size="sm">
-                            <Eye className="mr-2 h-4 w-4" />
-                            View
-                          </Button>
+                          <div className="flex gap-2 justify-end">
+                            <Button variant="outline" size="sm" onClick={() => handleView(order)}>
+                              <Eye className="mr-2 h-4 w-4" />
+                              View
+                            </Button>
+                            {order.status === "PENDING" && (
+                                                           <Button 
+                               variant="destructive" 
+                               size="sm" 
+                               onClick={() => handleReject(order)}
+                               disabled={statusUpdating}
+                             >
+                               <XCircle className="mr-2 h-4 w-4" />
+                               Cancel
+                             </Button>
+                            )}
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -174,6 +264,64 @@ export default function OrdersPage() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Order Details Modal */}
+      <Dialog open={!!selectedOrder} onOpenChange={handleClose}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Order Details</DialogTitle>
+          </DialogHeader>
+          {selectedOrder && (
+            <div className="space-y-4">
+              <div>
+                <strong>Order ID:</strong> {selectedOrder.orderNumber}<br />
+                <strong>Customer:</strong> {selectedOrder.customer?.user?.firstName} {selectedOrder.customer?.user?.lastName}<br />
+                <strong>Status:</strong> {selectedOrder.status}
+              </div>
+              <div>
+                <strong>Products:</strong>
+                <ul className="list-disc ml-6">
+                  {selectedOrder.orderItems.map(item => (
+                    <li key={item.id}>{item.product?.name} x {item.quantity}</li>
+                  ))}
+                </ul>
+              </div>
+              <div>
+                <strong>Total:</strong> ${Number(selectedOrder.total).toFixed(2)}
+              </div>
+              <div>
+                <label className="block font-medium mb-1">Change Status:</label>
+                <select
+                  className="border rounded px-2 py-1"
+                  value={selectedOrder.status}
+                  onChange={handleStatusChange}
+                  disabled={statusUpdating}
+                >
+                  {STATUS_OPTIONS.map(status => (
+                    <option key={status} value={status}>{status}</option>
+                  ))}
+                </select>
+              </div>
+              {selectedOrder.status === "PENDING" && (
+                <div className="pt-2">
+                                     <Button 
+                     variant="destructive" 
+                     onClick={() => handleReject(selectedOrder)}
+                     disabled={statusUpdating}
+                     className="w-full"
+                   >
+                     <XCircle className="mr-2 h-4 w-4" />
+                     Cancel Order
+                   </Button>
+                </div>
+              )}
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={handleClose}>Close</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

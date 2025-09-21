@@ -25,6 +25,7 @@ import {
   SidebarGroup,
   SidebarGroupLabel,
   SidebarGroupContent,
+  SidebarRail,
 } from "@/components/ui/sidebar"
 import { Button } from "@/components/ui/button"
 import { ModeToggle } from "@/components/mode-toggle"
@@ -44,15 +45,15 @@ export function FarmerSidebar() {
   return (
     <Sidebar className="border-r">
       <SidebarHeader className="border-b">
-        <div className="flex items-center justify-between px-4 py-3">
-          <div className="flex items-center gap-2">
-            <Leaf className="h-6 w-6 text-green-600" />
-            <h1 className="text-lg font-bold">AgriSmart</h1>
+        <div className="flex items-center justify-between px-3 sm:px-4 py-3">
+          <div className="flex items-center gap-2 min-w-0">
+            <Leaf className="h-5 w-5 sm:h-6 sm:w-6 text-green-600 flex-shrink-0" />
+            <h1 className="text-base sm:text-lg font-bold truncate">AgriSmart</h1>
           </div>
-          <SidebarTrigger />
+          <SidebarTrigger className="flex-shrink-0 md:hidden" />
         </div>
-        <div className="px-4 py-2">
-          <div className="text-sm text-muted-foreground">Farmer Portal</div>
+        <div className="px-3 sm:px-4 py-2">
+          <div className="text-xs sm:text-sm text-muted-foreground">Farmer Portal</div>
         </div>
       </SidebarHeader>
       <SidebarContent>
@@ -137,16 +138,19 @@ export function FarmerSidebar() {
         </SidebarGroup>
       </SidebarContent>
       <SidebarFooter className="border-t p-2">
-        <div className="flex items-center justify-between">
-          <UserNav />
-          <div className="flex items-center gap-2">
+        <div className="flex items-center justify-between gap-2">
+          <div className="min-w-0 flex-1">
+            <UserNav />
+          </div>
+          <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
             <ModeToggle />
-            <Button variant="ghost" size="icon" onClick={handleLogout} title="Logout">
-              <LogOut className="h-4 w-4" />
+            <Button variant="ghost" size="sm" onClick={handleLogout} title="Logout" className="h-8 w-8 p-0">
+              <LogOut className="h-3 w-3 sm:h-4 sm:w-4" />
             </Button>
           </div>
         </div>
       </SidebarFooter>
+      <SidebarRail />
     </Sidebar>
   )
 }

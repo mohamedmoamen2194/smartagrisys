@@ -62,13 +62,20 @@ function AddDialog({ onAdd }: AddDialogProps) {
   const [category, setCategory] = useState("")
   const [price, setPrice] = useState(0)
   const [unit, setUnit] = useState("")
-  
+  // Image upload
+  const [images, setImages] = useState<File[]>([])
   // Inventory fields
   const [quantity, setQuantity] = useState(0)
   const [minThreshold, setMinThreshold] = useState(10)
   const [maxThreshold, setMaxThreshold] = useState(1000)
   const [isOpen, setIsOpen] = useState(false)
   const [loading, setLoading] = useState(false)
+
+  const handleImageChange = (e: ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      setImages(Array.from(e.target.files))
+    }
+  }
 
   const handleAdd = async () => {
     if (!name || !category || !price || !unit) {
@@ -83,13 +90,9 @@ function AddDialog({ onAdd }: AddDialogProps) {
 
     try {
       setLoading(true)
-      
-      // First create the product
       const userStr = localStorage.getItem("user")
-      if (!userStr) {
-        throw new Error("Please log in again")
-      }
-
+      if (!userStr) throw new Error("Please log in again")
+      // First create the product
       const productResponse = await fetch('/api/products', {
         method: 'POST',
         headers: {
@@ -104,13 +107,27 @@ function AddDialog({ onAdd }: AddDialogProps) {
           unit
         }),
       })
-
-      if (!productResponse.ok) {
-        throw new Error('Failed to create product')
-      }
-
+      if (!productResponse.ok) throw new Error('Failed to create product')
       const product = await productResponse.json()
-
+      // Upload images if any
+      if (images.length > 0) {
+        console.log('Uploading', images.length, 'images for product', product.id);
+        const formData = new FormData()
+        images.forEach((file) => formData.append('images', file))
+        const imageResponse = await fetch(`/api/products/${product.id}/images`, {
+          method: 'POST',
+          headers: {
+            'Authorization': userStr
+          },
+          body: formData
+        })
+        if (!imageResponse.ok) {
+          console.error('Failed to upload images:', await imageResponse.text());
+        } else {
+          const imageResult = await imageResponse.json();
+          console.log('Images uploaded successfully:', imageResult);
+        }
+      }
       // Then add it to inventory
       await onAdd({
         productId: product.id,
@@ -118,7 +135,6 @@ function AddDialog({ onAdd }: AddDialogProps) {
         minThreshold,
         maxThreshold
       })
-
       setIsOpen(false)
       toast.success("Product added to inventory successfully")
     } catch (error) {
@@ -203,6 +219,19 @@ function AddDialog({ onAdd }: AddDialogProps) {
               value={unit}
               onChange={(e: ChangeEvent<HTMLInputElement>) => setUnit(e.target.value)}
               placeholder="kg, pieces, etc."
+              className="col-span-3"
+            />
+          </div>
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="images" className="text-right">
+              Product Images
+            </Label>
+            <Input
+              id="images"
+              type="file"
+              accept="image/*"
+              multiple
+              onChange={handleImageChange}
               className="col-span-3"
             />
           </div>

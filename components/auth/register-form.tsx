@@ -22,6 +22,8 @@ export function RegisterForm({ userType }: RegisterFormProps) {
     phone: "",
     password: "",
     confirmPassword: "",
+    farmCountry: "",
+    farmState: "",
   })
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
@@ -68,6 +70,10 @@ export function RegisterForm({ userType }: RegisterFormProps) {
           phone: formData.phone || undefined,
           password: formData.password,
           role: userType.toUpperCase(),
+          ...(userType === "farmer" && {
+            farmCountry: formData.farmCountry,
+            farmState: formData.farmState,
+          }),
         }),
       })
 
@@ -159,6 +165,33 @@ export function RegisterForm({ userType }: RegisterFormProps) {
               onChange={handleChange}
             />
           </div>
+
+          {userType === "farmer" && (
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="farmCountry">Farm Country</Label>
+                <Input
+                  id="farmCountry"
+                  name="farmCountry"
+                  placeholder="Country"
+                  value={formData.farmCountry}
+                  onChange={handleChange}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="farmState">Farm State</Label>
+                <Input
+                  id="farmState"
+                  name="farmState"
+                  placeholder="State"
+                  value={formData.farmState}
+                  onChange={handleChange}
+                  required
+                />
+              </div>
+            </div>
+          )}
 
           <div className="space-y-2">
             <Label htmlFor="password">Password</Label>

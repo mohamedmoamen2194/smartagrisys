@@ -56,63 +56,43 @@ export async function GET() {
         return NextResponse.json({ error: 'Farmer not found' }, { status: 404 });
       }
 
-      // Get orders grouped by month for the current year
+      // Get orders for the current year, delivered only
       const currentYear = new Date().getFullYear();
       const startDate = new Date(currentYear, 0, 1); // January 1st of current year
-      const endDate = new Date(currentYear, 11, 31); // December 31st of current year
+      const endDate = new Date(currentYear, 11, 31, 23, 59, 59, 999); // End of December
 
-      const orders = await prisma.order.groupBy({
-        by: ['createdAt'],
+      const deliveredOrders = await prisma.order.findMany({
         where: {
           farmerId: farmer.id,
+          status: 'DELIVERED',
           createdAt: {
             gte: startDate,
             lte: endDate
           }
         },
-        _sum: {
-          total: true
+        select: {
+          total: true,
+          createdAt: true
         }
-      }) as OrderGroup[];
+      });
 
-      // Get expenses grouped by month for the current year
-      const expenses = await prisma.expense.groupBy({
-        by: ['date'],
-        where: {
-          farmerId: farmer.id,
-          date: {
-            gte: startDate,
-            lte: endDate
-          }
-        },
-        _sum: {
-          amount: true
-        }
-      }) as ExpenseGroup[];
-
-      // Transform data into monthly format
+      // Aggregate revenue by month
       const months = [
         'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
         'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
       ];
-
-      const chartData = months.map((month, index) => {
-        const monthOrders = orders.filter((order: OrderGroup) => {
-          const orderDate = new Date(order.createdAt);
-          return orderDate.getMonth() === index;
-        });
-
-        const monthExpenses = expenses.filter((expense: ExpenseGroup) => {
-          const expenseDate = new Date(expense.date);
-          return expenseDate.getMonth() === index;
-        });
-
-        return {
-          name: month,
-          sales: monthOrders.reduce((sum: number, order: OrderGroup) => sum + (order._sum?.total || 0), 0),
-          expenses: monthExpenses.reduce((sum: number, expense: ExpenseGroup) => sum + (expense._sum?.amount || 0), 0)
-        };
+      const monthlyRevenue = Array(12).fill(0);
+      deliveredOrders.forEach(order => {
+        const month = new Date(order.createdAt).getMonth();
+        monthlyRevenue[month] += Number(order.total ?? 0);
       });
+
+      // Build chart data
+      const chartData = months.map((month, i) => ({
+        name: month,
+        sales: monthlyRevenue[i],
+        expenses: 0 // You can add expenses if needed
+      }));
 
       return NextResponse.json(chartData);
     }

@@ -44,6 +44,8 @@ export async function createUser(userData: {
   lastName: string
   role: "FARMER" | "CUSTOMER"
   phone?: string
+  farmCountry?: string
+  farmState?: string
 }) {
   const user = await prisma.user.create({
     data: {
@@ -59,6 +61,8 @@ export async function createUser(userData: {
               create: {
                 farmName: `${userData.firstName}'s Farm`,
                 farmAddress: "Address to be updated",
+                farmCountry: userData.farmCountry,
+                farmState: userData.farmState,
               },
             },
           }

@@ -56,6 +56,11 @@ export async function GET() {
     const products = await prisma.product.findMany({
       where: {
         isActive: true,
+        inventoryItems: {
+          some: {
+            quantity: { gt: 0 }
+          }
+        }
       },
       include: {
         farmer: {
@@ -79,8 +84,14 @@ export async function GET() {
     });
 
     // Transform the response to match the expected format
-    const transformedProducts = products.map((product: ProductWithRelations) => ({
+    const transformedProducts = products.map((product) => ({
       ...product,
+      price: Number(product.price),
+      inventoryItems: product.inventoryItems.map((inv) => ({
+        ...inv,
+        quantity: Number(inv.quantity),
+        reservedQty: Number(inv.reservedQty)
+      })),
       farmer: {
         id: product.farmer.id,
         farmName: product.farmer.farmName,

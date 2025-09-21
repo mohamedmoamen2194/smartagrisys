@@ -41,6 +41,8 @@ export default function CustomerShopPage() {
           throw new Error('Failed to fetch products')
         }
         const data = await response.json()
+        console.log('Products fetched:', data);
+        console.log('Products with images:', data.filter((p: Product) => p.images && p.images.length > 0));
         setProducts(data)
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to fetch products')

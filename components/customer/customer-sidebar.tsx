@@ -15,6 +15,7 @@ import {
   SidebarGroup,
   SidebarGroupLabel,
   SidebarGroupContent,
+  SidebarRail,
 } from "@/components/ui/sidebar"
 import { Button } from "@/components/ui/button"
 import { ModeToggle } from "@/components/mode-toggle"
@@ -113,6 +114,7 @@ export function CustomerSidebar() {
           </div>
         </div>
       </SidebarFooter>
+      <SidebarRail />
     </Sidebar>
   )
 }

@@ -32,6 +32,8 @@ export async function registerUser(data: {
   lastName: string
   role: "FARMER" | "CUSTOMER"
   phone?: string
+  farmCountry?: string
+  farmState?: string
 }) {
   // Check if user already exists
   const existingUser = await getUserByEmail(data.email)

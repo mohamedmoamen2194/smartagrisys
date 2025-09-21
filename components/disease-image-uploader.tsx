@@ -60,7 +60,7 @@ export function DiseaseImageUploader() {
     setResult(null)
     try {
       const formData = new FormData()
-      formData.append("file", image)
+      formData.append("image", image)
       const response = await fetch("/api/ai/disease-detection", {
         method: "POST",
         body: formData,
