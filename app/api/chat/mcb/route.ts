@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 
-const MCB_BASE_URL = process.env.MCB_API_URL || 'http://localhost:8001'
+// Use our internal mock MCB API instead of external server
 
 interface ChatMessage {
   message: string
@@ -35,13 +35,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Message is required' }, { status: 400 })
     }
 
-    // Step 1: Analyze message with MCB
-    const mcbAnalysisResponse = await fetch(`${MCB_BASE_URL}/mcb/analyze`, {
+    // Step 1: Analyze message with our internal MCB mock API
+    const mcbAnalysisResponse = await fetch(`${request.nextUrl.origin}/api/mcb`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
+        action: 'analyze',
         message,
         user_id: userId,
         user_type: userType,
@@ -57,48 +58,48 @@ export async function POST(request: NextRequest) {
       throw new Error(`MCB analysis failed: ${errorText}`)
     }
 
-    const mcbResult: MCBResponse = await mcbAnalysisResponse.json()
+    const mcbData = await mcbAnalysisResponse.json()
+    
+    // Convert mock response to expected format
+    const mcbResult: MCBResponse = {
+      selected_model: {
+        model_id: mcbData.analysis?.selected_model?.id || 'mock_model',
+        name: mcbData.analysis?.selected_model?.name || 'Mock Model',
+        type: mcbData.analysis?.selected_model?.type || 'general',
+        description: mcbData.analysis?.selected_model?.description || 'Mock AI Model'
+      },
+      confidence: mcbData.analysis?.confidence || 0.9,
+      reasoning: mcbData.analysis?.reasoning || 'Mock analysis',
+      required_inputs: {},
+      can_execute: true,
+      session_id: mcbData.analysis?.session_id || conversationId || `session_${Date.now()}`
+    }
 
     // Step 2: Check if we can execute the model immediately
     if (mcbResult.can_execute) {
       try {
-        // Execute the selected model
-        const executionResponse = await fetch(`${MCB_BASE_URL}/mcb/execute`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            model_id: mcbResult.selected_model.model_id,
-            session_id: mcbResult.session_id,
-            inputs: extractInputsFromMessage(message, mcbResult.selected_model.type)
-          }),
-        })
-
-        if (executionResponse.ok) {
-          const executionResult = await executionResponse.json()
-          const enhancedResponse = formatModelResult(executionResult, mcbResult.selected_model)
-          
-          return NextResponse.json({
-            message: {
-              content: enhancedResponse,
-              role: 'assistant',
-              timestamp: new Date(),
-              metadata: {
-                model_used: mcbResult.selected_model.name,
-                confidence: mcbResult.confidence,
-                execution_time: executionResult.execution_time_ms,
-                model_type: mcbResult.selected_model.type
-              }
-            },
-            conversationId: mcbResult.session_id,
-            mcb_analysis: {
-              selected_model: mcbResult.selected_model,
+        // Use the response from our mock MCB API directly
+        const responseContent = mcbData.result?.response || mcbData.analysis?.response || "I'm here to help with your agricultural questions!"
+        
+        return NextResponse.json({
+          message: {
+            content: responseContent,
+            role: 'assistant',
+            timestamp: new Date(),
+            metadata: {
+              model_used: mcbResult.selected_model.name,
               confidence: mcbResult.confidence,
-              reasoning: mcbResult.reasoning
+              execution_time: 150, // Mock execution time
+              model_type: mcbResult.selected_model.type
             }
-          })
-        }
+          },
+          conversationId: mcbResult.session_id,
+          mcb_analysis: {
+            selected_model: mcbResult.selected_model,
+            confidence: mcbResult.confidence,
+            reasoning: mcbResult.reasoning
+          }
+        })
       } catch (executionError) {
         console.error('Model execution failed:', executionError)
         // Fall through to analysis-only response
