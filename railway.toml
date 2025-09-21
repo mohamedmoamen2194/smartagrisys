@@ -1,0 +1,14 @@
+[build]
+builder = "NIXPACKS"
+
+[deploy]
+startCommand = "python smart_agri_models/start_server.py"
+healthcheckPath = "/health"
+healthcheckTimeout = 300
+
+[[services]]
+name = "agrismart-api"
+
+[services.variables]
+PORT = "8000"
+PYTHON_VERSION = "3.11"
