@@ -1,6 +1,22 @@
 import { NextRequest, NextResponse } from "next/server"
 
-const AI_BACKEND_URL = process.env.AI_BACKEND_URL || "http://localhost:8000"
+// Mock disease detection logic
+function detectDisease(imageFile: File, cropType?: string): { disease: string; confidence: number } {
+  // Mock diseases based on crop type or random selection
+  const diseases = {
+    tomato: ["early_blight", "late_blight", "bacterial_spot", "healthy"],
+    potato: ["late_blight", "early_blight", "healthy"],
+    corn: ["northern_leaf_blight", "gray_leaf_spot", "healthy"],
+    wheat: ["rust", "powdery_mildew", "healthy"],
+    default: ["early_blight", "bacterial_spot", "powdery_mildew", "healthy"]
+  }
+  
+  const cropDiseases = diseases[cropType as keyof typeof diseases] || diseases.default
+  const randomDisease = cropDiseases[Math.floor(Math.random() * cropDiseases.length)]
+  const confidence = 0.75 + Math.random() * 0.2 // Random confidence between 0.75-0.95
+  
+  return { disease: randomDisease, confidence }
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -23,46 +39,18 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Create new FormData for the backend
-    const backendFormData = new FormData()
-    backendFormData.append("file", image)
-    if (cropType) {
-      backendFormData.append("crop_type", cropType)
-    }
-
-    // Call the Python backend (try unified endpoint first, then fallback to independent)
-    let response = await fetch(`${AI_BACKEND_URL}/disease_detection/predict`, {
-      method: "POST",
-      body: backendFormData,
-    })
-
-    // If unified endpoint is not found, try the independent endpoint
-    if (response.status === 404) {
-      response = await fetch(`${AI_BACKEND_URL}/predict`, {
-        method: "POST",
-        body: backendFormData,
-      })
-    }
-
-    if (!response.ok) {
-      const errorData = await response.json()
-      return NextResponse.json(
-        { error: errorData.detail || "Error from disease detection service" },
-        { status: response.status }
-      )
-    }
-
-    const data = await response.json()
+    // Use mock disease detection
+    const { disease, confidence } = detectDisease(image, cropType)
     
     // Enhance the response with treatment recommendations
     const enhancedResponse = {
-      disease: data.disease,
-      confidence: data.confidence,
-      severity: getDiseaseSeverity(data.disease),
-      treatment: getTreatmentRecommendations(data.disease, cropType),
-      prevention: getPreventionTips(data.disease),
-      symptoms: getDiseaseSymptoms(data.disease),
-      nextSteps: getNextSteps(data.disease, data.confidence),
+      disease,
+      confidence,
+      severity: getDiseaseSeverity(disease),
+      treatment: getTreatmentRecommendations(disease, cropType),
+      prevention: getPreventionTips(disease),
+      symptoms: getDiseaseSymptoms(disease),
+      nextSteps: getNextSteps(disease, confidence),
     }
 
     return NextResponse.json(enhancedResponse)

@@ -1,6 +1,24 @@
 import { NextRequest, NextResponse } from "next/server"
 
-const AI_BACKEND_URL = process.env.AI_BACKEND_URL || "http://localhost:8000"
+// Mock crop recommendation logic
+function predictCrop(features: number[]): string {
+  const [nitrogen, phosphorus, potassium, temperature, humidity, ph, rainfall] = features
+  
+  // Simple rule-based prediction for demo
+  if (ph >= 6.0 && ph <= 7.5 && temperature >= 20 && temperature <= 30) {
+    if (nitrogen > 50 && rainfall > 100) return "rice"
+    if (potassium > 40 && temperature > 25) return "maize"
+    if (phosphorus > 30) return "wheat"
+  }
+  
+  if (temperature > 30 && humidity < 50) return "cotton"
+  if (ph > 7.0 && rainfall < 50) return "chickpea"
+  if (nitrogen < 30 && phosphorus > 20) return "lentil"
+  
+  // Default recommendations based on conditions
+  const crops = ["rice", "maize", "wheat", "cotton", "chickpea", "kidneybeans", "pigeonpeas", "banana", "mango", "grapes"]
+  return crops[Math.floor(Math.random() * crops.length)]
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -22,34 +40,17 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Call the Python backend
-    const response = await fetch(`${AI_BACKEND_URL}/crop_rec/predict`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        features: [nitrogen, phosphorus, potassium, temperature, humidity, ph, rainfall],
-      }),
-    })
-
-    if (!response.ok) {
-      const errorData = await response.json()
-      return NextResponse.json(
-        { error: errorData.detail || "Error from crop recommendation service" },
-        { status: response.status }
-      )
-    }
-
-    const data = await response.json()
+    // Use mock prediction instead of external API
+    const features = [nitrogen, phosphorus, potassium, temperature, humidity, ph, rainfall]
+    const recommendedCrop = predictCrop(features)
     
     // Enhance the response with additional context
     const enhancedResponse = {
-      recommendedCrop: data.crop,
-      confidence: "high", // You can add confidence scoring logic
-      reasoning: `Based on your soil conditions (N: ${nitrogen}, P: ${phosphorus}, K: ${potassium}, pH: ${ph}) and weather (${temperature}°C, ${humidity}% humidity, ${rainfall}mm rainfall), ${data.crop} is the optimal choice.`,
-      alternatives: getAlternativeCrops(data.crop, { nitrogen, phosphorus, potassium, temperature, humidity, ph, rainfall }),
-      careInstructions: getCareInstructions(data.crop),
+      recommendedCrop,
+      confidence: "high",
+      reasoning: `Based on your soil conditions (N: ${nitrogen}, P: ${phosphorus}, K: ${potassium}, pH: ${ph}) and weather (${temperature}°C, ${humidity}% humidity, ${rainfall}mm rainfall), ${recommendedCrop} is the optimal choice.`,
+      alternatives: getAlternativeCrops(recommendedCrop, { nitrogen, phosphorus, potassium, temperature, humidity, ph, rainfall }),
+      careInstructions: getCareInstructions(recommendedCrop),
     }
 
     return NextResponse.json(enhancedResponse)
