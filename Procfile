@@ -1,1 +1,1 @@
-web: cd smart_agri_models && python start_server.py
+web: cd smart_agri_models && python3 start_server.py
