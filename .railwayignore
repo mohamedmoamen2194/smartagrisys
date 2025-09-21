@@ -1,0 +1,22 @@
+node_modules/
+.next/
+.git/
+.env.local
+*.log
+.DS_Store
+Thumbs.db
+
+# Keep only Python-related files for Railway
+package.json
+package-lock.json
+pnpm-lock.yaml
+components/
+app/
+hooks/
+lib/
+styles/
+public/
+next.config.mjs
+tailwind.config.ts
+tsconfig.json
+postcss.config.mjs
