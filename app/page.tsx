@@ -5,13 +5,13 @@ import Link from "next/link"
 
 export default function Home() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 dark:from-gray-900 dark:to-gray-800">
+    <div className="min-h-screen" style={{backgroundImage: 'linear-gradient(to bottom right, hsl(var(--secondary)/0.25), hsl(var(--accent)/0.25))'}}>
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 lg:py-16">
         <div className="text-center mb-8 sm:mb-12 lg:mb-16">
           <div className="flex flex-col sm:flex-row items-center justify-center mb-4 sm:mb-6 gap-3 sm:gap-4">
-            <Leaf className="h-12 w-12 sm:h-14 sm:w-14 lg:h-16 lg:w-16 text-green-600" />
+            <Leaf className="h-12 w-12 sm:h-14 sm:w-14 lg:h-16 lg:w-16" style={{color: 'hsl(var(--primary))'}} />
             <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-gray-900 dark:text-white text-center sm:text-left">
-              Agri<span className="text-green-600">Smart</span>
+              Agri<span className="" style={{color: 'hsl(var(--primary))'}}>Smart</span>
             </h1>
           </div>
           <p className="text-base sm:text-lg lg:text-xl text-gray-600 dark:text-gray-300 max-w-2xl mx-auto px-4 sm:px-0">
@@ -23,8 +23,8 @@ export default function Home() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8 max-w-4xl mx-auto">
           <Card className="hover:shadow-lg transition-shadow">
             <CardHeader className="text-center p-4 sm:p-6">
-              <div className="mx-auto mb-3 sm:mb-4 p-2 sm:p-3 bg-green-100 dark:bg-green-900 rounded-full w-fit">
-                <Users className="h-6 w-6 sm:h-8 sm:w-8 text-green-600" />
+              <div className="mx-auto mb-3 sm:mb-4 p-2 sm:p-3 rounded-full w-fit" style={{backgroundColor: 'hsl(var(--secondary)/0.35)'}}>
+                <Users className="h-6 w-6 sm:h-8 sm:w-8" style={{color: 'hsl(var(--primary))'}} />
               </div>
               <CardTitle className="text-xl sm:text-2xl">Farmer Portal</CardTitle>
               <CardDescription className="text-sm sm:text-base">

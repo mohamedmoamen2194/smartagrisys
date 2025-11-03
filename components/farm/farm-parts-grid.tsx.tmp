@@ -12,7 +12,7 @@ interface Props {
   selectedPartId?: string
 }
 
-export function FarmPartsGrid({ rows, cols, parts, onPartClick, selectedPartId }: Props) {
+export function FarmPartsGrid({ rows, cols, parts, onPartClick, selectedPartId }: Props): JSX.Element {
   const grid: (string | null)[][] = Array.from({ length: rows }, () => Array(cols).fill(null))
   
   parts.forEach((p) => {
@@ -35,13 +35,13 @@ export function FarmPartsGrid({ rows, cols, parts, onPartClick, selectedPartId }
 
   return (
     <div
-      className="grid p-0 rounded-none shadow-2xl relative overflow-hidden"
+      className="grid gap-2 p-4 rounded-xl border-4 shadow-2xl relative"
       style={{
         gridTemplateColumns: `repeat(${cols}, minmax(0,1fr))`,
         gridTemplateRows: `repeat(${rows}, minmax(0,1fr))`,
         backgroundImage: `linear-gradient(to bottom right, ${from}, ${via}, ${to})`,
-        gap: '1px',
-        ['--cell-gap' as any]: '1px'
+        borderColor: 'hsl(var(--primary))',
+        boxShadow: '0 0 0 4px hsl(var(--primary) / 0.3)'
       }}
     >
       {Array.from({ length: rows * cols }, (_, i) => {
@@ -66,47 +66,48 @@ export function FarmPartsGrid({ rows, cols, parts, onPartClick, selectedPartId }
             title={part ? `${part.name}${part.cropName ? ` • ${part.cropName}` : ""}` : undefined}
           >
             {part && (
-              <>
-                <div className="absolute inset-0 bg-gradient-to-br from-white/30 to-transparent" />
-                <div className="absolute inset-0 shadow-inner opacity-20" style={{ boxShadow: "inset 0 4px 4px rgba(0,0,0,0.2), inset 0 -2px 4px rgba(255,255,255,0.2)" }} />
-              </>
+              <React.Fragment>
+                {isStart(r, c, part) && (
+                  <div 
+                    className="absolute pointer-events-none"
+                    style={{
+                      left: '-2px',
+                      top: '-2px',
+                      width: `calc(${part.cols * 100}% + ${(part.cols - 1) * 0.5}rem + 4px)`,
+                      height: `calc(${part.rows * 100}% + ${(part.rows - 1) * 0.5}rem + 4px)`,
+                      border: '3px solid hsl(var(--primary))',
+                      borderRadius: '0.5rem',
+                      zIndex: 2,
+                      boxShadow: '0 0 0 2px hsl(var(--primary) / 0.3)'
+                    }}
+                  />
+                )}
+                <div 
+                  className="absolute inset-0 bg-gradient-to-br from-white/30 to-transparent rounded"
+                />
+                {isStart(r, c, part) && (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center p-1 z-10 gap-0.5">
+                    <span className="text-white text-xs drop-shadow-md text-center break-words line-clamp-1">
+                      {part.name}
+                    </span>
+                    {part.cropName && (
+                      <span className="text-white text-[10px] drop-shadow-md text-center break-words line-clamp-1 px-1 py-0.5 bg-black/20 rounded">
+                        {part.cropName}
+                      </span>
+                    )}
+                  </div>
+                )}
+                <div 
+                  className="absolute inset-0 rounded shadow-inner opacity-20" 
+                  style={{ 
+                    boxShadow: "inset 0 2px 4px rgba(0,0,0,0.2), inset 0 -2px 4px rgba(255,255,255,0.2)" 
+                  }} 
+                />
+              </React.Fragment>
             )}
-          </div>
-        )
-      })}
-      {/* overlay borders rendered above cells so they are visible */}
-      {parts.map((p) => {
-        // only render overlay if the part has a valid start within grid
-        if (p.startRow < 0 || p.startCol < 0 || p.startRow >= rows || p.startCol >= cols) return null
-
-        const isSelected = p.id === selectedPartId
-
-        return (
-          <div
-            key={`overlay-${p.id}`}
-            aria-hidden
-            className="pointer-events-none"
-            style={{
-              // use CSS Grid spanning so overlays align perfectly with cells and gaps
-              gridColumn: `${p.startCol + 1} / span ${p.cols}`,
-              gridRow: `${p.startRow + 1} / span ${p.rows}`,
-              border: isSelected ? '4px solid #f6e05e' : '3px solid hsl(var(--primary))',
-              boxSizing: 'border-box',
-              borderRadius: 0,
-              zIndex: 50,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
-            }}
-          >
-            <div className="text-white text-xs drop-shadow-md text-center px-1">
-              {p.name}{p.cropName ? ` • ${p.cropName}` : ''}
-            </div>
           </div>
         )
       })}
     </div>
   )
 }
-
-

@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import React, { useEffect, useMemo, useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Button } from "@/components/ui/button"
@@ -31,47 +31,94 @@ type GridPart = {
   cropName?: string
 }
 
-function renderGrid(rows: number, cols: number, parts: GridPart[], onPartClick?: (p: GridPart) => void) {
-  const grid: (string | null)[][] = Array.from({ length: rows }, () => Array(cols).fill(null))
-  parts.forEach((p) => {
-    for (let r = p.startRow; r < Math.min(p.startRow + p.rows, rows); r++) {
-      for (let c = p.startCol; c < Math.min(p.startCol + p.cols, cols); c++) {
-        if (r >= 0 && r < rows && c >= 0 && c < cols) grid[r][c] = p.id
-      }
-    }
-  })
+interface FarmGridProps {
+  rows: number
+  cols: number
+  parts: GridPart[]
+  onPartClick?: (p: GridPart) => void
+}
 
-  const getPart = (r: number, c: number) => parts.find((p) => p.id === grid[r][c])
-  const isStart = (r: number, c: number, p: GridPart) => p.startRow === r && p.startCol === c
+const FarmGrid = ({ rows, cols, parts, onPartClick }: FarmGridProps) => {
+  const grid = useMemo(() => {
+    const newGrid: (string | null)[][] = Array.from({ length: rows }, () => Array(cols).fill(null))
+    
+    parts.forEach((p) => {
+      for (let r = p.startRow; r < Math.min(p.startRow + p.rows, rows); r++) {
+        for (let c = p.startCol; c < Math.min(p.startCol + p.cols, cols); c++) {
+          if (r >= 0 && r < rows && c >= 0 && c < cols) newGrid[r][c] = p.id
+        }
+      }
+    })
+    
+    return newGrid
+  }, [rows, cols, parts])
+
+  const cells = []
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      const partId = grid[r]?.[c]
+      const part = parts.find((p) => p.id === partId)
+      const isStart = part && part.startRow === r && part.startCol === c
+      
+      // Check borders - if adjacent cell has different part, add border (not at grid edges)
+      const topDifferent = r > 0 && grid[r - 1]?.[c] !== partId && partId !== null
+      const bottomDifferent = r < rows - 1 && grid[r + 1]?.[c] !== partId && partId !== null
+      const leftDifferent = c > 0 && grid[r]?.[c - 1] !== partId && partId !== null
+      const rightDifferent = c < cols - 1 && grid[r]?.[c + 1] !== partId && partId !== null
+      
+      cells.push(
+        <div
+          key={`${r}-${c}`}
+          onClick={() => part && onPartClick?.(part)}
+          className={cn(
+            "relative transition-all duration-200 w-full h-full",
+            part 
+              ? "cursor-pointer hover:scale-[1.02] hover:shadow-lg" 
+              : "bg-green-50/40 dark:bg-green-900/20 border border-green-200/30 dark:border-green-800/30"
+          )}
+          style={{
+            backgroundColor: part ? part.color : undefined, 
+            opacity: part ? 1 : 1,
+            gridRow: r + 1,
+            gridColumn: c + 1,
+            borderTop: topDifferent ? '3px solid rgba(255, 255, 255, 0.6)' : undefined,
+            borderBottom: bottomDifferent ? '3px solid rgba(255, 255, 255, 0.6)' : undefined,
+            borderLeft: leftDifferent ? '3px solid rgba(255, 255, 255, 0.6)' : undefined,
+            borderRight: rightDifferent ? '3px solid rgba(255, 255, 255, 0.6)' : undefined
+          }}
+          title={part ? `${part.name}${part.cropName ? ` • ${part.cropName}` : ""}` : undefined}
+        >
+          {part && isStart && (
+            <div className="absolute inset-0 flex flex-col items-center justify-center p-2">
+              <span className="text-white text-sm font-bold drop-shadow-lg text-center line-clamp-2">
+                {part.name}
+              </span>
+              {part.cropName && (
+                <span className="mt-1 text-xs text-white/95 bg-black/30 rounded-md px-2 py-1 line-clamp-1 backdrop-blur-sm">
+                  {part.cropName}
+                </span>
+              )}
+            </div>
+          )}
+        </div>
+      )
+    }
+  }
 
   return (
-    <div
-      className="grid gap-1 p-4 bg-gradient-to-br from-green-200 via-green-300 to-green-200 rounded-xl border-4 border-amber-900 shadow"
-      style={{ gridTemplateColumns: `repeat(${cols}, minmax(0,1fr))`, gridTemplateRows: `repeat(${rows}, minmax(0,1fr))` }}
-    >
-      {Array.from({ length: rows * cols }, (_, i) => {
-        const r = Math.floor(i / cols)
-        const c = i % cols
-        const part = getPart(r, c)
-        return (
-          <div
-            key={`${r}-${c}`}
-            onClick={() => part && onPartClick?.(part)}
-            className={cn("relative aspect-square rounded", part ? "cursor-pointer" : "bg-green-100/50")}
-            style={{ backgroundColor: part ? part.color : undefined, opacity: part ? 1 : 0.3 }}
-            title={part ? `${part.name}${part.cropName ? ` • ${part.cropName}` : ""}` : undefined}
-          >
-            {part && isStart(r, c, part) && (
-              <div className="absolute inset-0 flex flex-col items-center justify-center p-1">
-                <span className="text-white text-xs drop-shadow font-semibold text-center line-clamp-1">{part.name}</span>
-                {part.cropName && (
-                  <span className="mt-0.5 text-[10px] text-white/90 bg-black/25 rounded px-1 py-0.5 line-clamp-1">{part.cropName}</span>
-                )}
-              </div>
-            )}
-          </div>
-        )
-      })}
+    <div className="p-4 w-full h-full flex items-center justify-center">
+      <div
+        className="grid gap-2 bg-gradient-to-br from-green-50 via-green-100 to-emerald-50 dark:from-green-950 dark:via-green-900 dark:to-emerald-950 rounded-2xl shadow-xl p-2"
+        style={{
+          gridTemplateColumns: `repeat(${cols}, 1fr)`,
+          gridTemplateRows: `repeat(${rows}, 1fr)`,
+          width: '90%',
+          height: '70vh',
+          maxWidth: '1200px'
+        }}
+      >
+        {cells}
+      </div>
     </div>
   )
 }
@@ -140,17 +187,18 @@ export function FarmVisualization() {
   }, [selectedFarmId])
 
   const { rows, cols, gridParts } = useMemo(() => {
-    // determine grid bounds from parts geometries; expect geometry like {startRow,startCol,rows,cols,color,cropName}
-    let maxRow = 0
-    let maxCol = 0
+    // Use the farm metadata dimensions or default to 6x6
+    const baseRows = Math.max(1, Number(farmMeta?.gridRows ?? 6))
+    const baseCols = Math.max(1, Number(farmMeta?.gridCols ?? 6))
+    
+    // Process parts and ensure they fit within the grid
     const mapped: GridPart[] = (parts || []).map((p, idx) => {
       const g = p.geometry || {}
-      const startRow = Number(g.startRow ?? 0)
-      const startCol = Number(g.startCol ?? 0)
-      const r = Number(g.rows ?? 1)
-      const c = Number(g.cols ?? 1)
-      maxRow = Math.max(maxRow, startRow + r)
-      maxCol = Math.max(maxCol, startCol + c)
+      const startRow = Math.min(Number(g.startRow ?? 0), baseRows - 1)
+      const startCol = Math.min(Number(g.startCol ?? 0), baseCols - 1)
+      const r = Math.min(Number(g.rows ?? 1), baseRows - startRow)
+      const c = Math.min(Number(g.cols ?? 1), baseCols - startCol)
+      
       return {
         id: p.id,
         name: p.name,
@@ -162,9 +210,12 @@ export function FarmVisualization() {
         cropName: g.cropName,
       }
     })
-    const baseRows = Number(farmMeta?.gridRows ?? 0)
-    const baseCols = Number(farmMeta?.gridCols ?? 0)
-    return { rows: Math.max(3, baseRows, maxRow || 10), cols: Math.max(3, baseCols, maxCol || 10), gridParts: mapped }
+    
+    return { 
+      rows: baseRows, 
+      cols: baseCols, 
+      gridParts: mapped 
+    }
   }, [parts, farmMeta])
 
   return (
@@ -264,13 +315,17 @@ export function FarmVisualization() {
           <div className="text-sm text-muted-foreground">No farms yet. Create one to begin.</div>
         ) : (
           <div className="w-full md:w-2/3 lg:w-1/2 mx-auto">
-            <FarmPartsGrid
-              rows={rows}
-              cols={cols}
-              parts={gridParts as unknown as FarmPartModel[]}
-              selectedPartId={selectedPartId}
-              onPartClick={(p) => setSelectedPartId(p.id)}
-            />
+            <div className="overflow-auto p-2 w-full">
+              <FarmGrid 
+                rows={rows}
+                cols={cols}
+                parts={gridParts}
+                onPartClick={(part) => {
+                  setSelectedPartId(part.id)
+                  setEditOpen(true)
+                }}
+              />
+            </div>
           </div>
         )}
       </CardContent>

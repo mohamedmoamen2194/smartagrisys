@@ -23,10 +23,11 @@ async function assertFarmOwnership(userId: string, farmId: string) {
   return farm
 }
 
-export async function POST(req: Request, { params }: { params: { farmId: string } }) {
+export async function POST(req: Request, { params }: { params: Promise<{ farmId: string }> }) {
   const user = await getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  const farm = await assertFarmOwnership(user.id, params.farmId)
+  const { farmId } = await params
+  const farm = await assertFarmOwnership(user.id, farmId)
   if (!farm) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
   const body = await req.json()
@@ -46,10 +47,11 @@ export async function POST(req: Request, { params }: { params: { farmId: string 
   return NextResponse.json(part, { status: 201 })
 }
 
-export async function GET(_req: Request, { params }: { params: { farmId: string } }) {
+export async function GET(_req: Request, { params }: { params: Promise<{ farmId: string }> }) {
   const user = await getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  const farm = await assertFarmOwnership(user.id, params.farmId)
+  const { farmId } = await params
+  const farm = await assertFarmOwnership(user.id, farmId)
   if (!farm) return NextResponse.json({ error: 'Not found' }, { status: 404 })
   const parts = await prisma.farmPart.findMany({ where: { farmId: farm.id }, orderBy: { createdAt: 'desc' } })
   return NextResponse.json(parts)

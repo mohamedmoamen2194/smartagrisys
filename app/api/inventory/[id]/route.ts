@@ -23,7 +23,7 @@ async function getUserFromRequest() {
 
 export async function PUT(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const user = await getUserFromRequest();
@@ -41,10 +41,11 @@ export async function PUT(
 
     const data = await request.json();
     const { quantity, minThreshold, maxThreshold } = data;
+    const { id } = await params;
 
     const updatedInventory = await prisma.inventoryItem.update({
       where: {
-        id: params.id,
+        id,
       },
       data: {
         quantity,
@@ -62,7 +63,7 @@ export async function PUT(
 
 export async function DELETE(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const user = await getUserFromRequest();
@@ -78,10 +79,12 @@ export async function DELETE(
       return NextResponse.json({ error: 'Farmer profile not found' }, { status: 404 });
     }
 
+    const { id } = await params;
+
     // Check if the inventory item exists for this farmer
     const item = await prisma.inventoryItem.findUnique({
       where: {
-        id: params.id,
+        id,
       },
     });
     if (!item) {
@@ -91,7 +94,7 @@ export async function DELETE(
     // Delete the inventory item
     await prisma.inventoryItem.delete({
       where: {
-        id: params.id,
+        id,
       },
     });
 

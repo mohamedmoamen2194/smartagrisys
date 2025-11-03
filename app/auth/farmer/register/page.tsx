@@ -4,11 +4,11 @@ import Link from "next/link"
 
 export default function FarmerRegisterPage() {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-50 to-blue-50 dark:from-gray-900 dark:to-gray-800">
+    <div className="min-h-screen flex items-center justify-center" style={{backgroundImage: 'linear-gradient(to bottom right, hsl(var(--secondary)/0.25), hsl(var(--accent)/0.25))'}}>
       <div className="max-w-md w-full space-y-8 p-8">
         <div className="text-center">
           <Link href="/" className="flex items-center justify-center mb-6">
-            <Leaf className="h-12 w-12 text-green-600 mr-2" />
+            <Leaf className="h-12 w-12 mr-2" style={{color: 'hsl(var(--primary))'}} />
             <span className="text-2xl font-bold">AgriSmart</span>
           </Link>
           <h2 className="text-3xl font-bold text-gray-900 dark:text-white">Farmer Registration</h2>

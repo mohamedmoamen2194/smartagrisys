@@ -26,34 +26,37 @@ async function assertPartOwnership(userId: string, partId: string) {
   return { part, farm }
 }
 
-export async function GET(_req: Request, { params }: { params: { partId: string } }) {
+export async function GET(_req: Request, { params }: { params: Promise<{ partId: string }> }) {
   const user = await getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  const owned = await assertPartOwnership(user.id, params.partId)
+  const { partId } = await params
+  const owned = await assertPartOwnership(user.id, partId)
   if (!owned) return NextResponse.json({ error: 'Not found' }, { status: 404 })
   const data = await prisma.farmPart.findUnique({
-    where: { id: params.partId },
+    where: { id: partId },
     include: { sensors: { include: { sensor: true } }, predictions: true, insights: true },
   })
   return NextResponse.json(data)
 }
 
-export async function PATCH(req: Request, { params }: { params: { partId: string } }) {
+export async function PATCH(req: Request, { params }: { params: Promise<{ partId: string }> }) {
   const user = await getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  const owned = await assertPartOwnership(user.id, params.partId)
+  const { partId } = await params
+  const owned = await assertPartOwnership(user.id, partId)
   if (!owned) return NextResponse.json({ error: 'Not found' }, { status: 404 })
   const body = await req.json()
   const { name, type, geometry, soilType, irrigationType, metadata } = body ?? {}
-  const updated = await prisma.farmPart.update({ where: { id: params.partId }, data: { name, type, geometry, soilType, irrigationType, metadata } })
+  const updated = await prisma.farmPart.update({ where: { id: partId }, data: { name, type, geometry, soilType, irrigationType, metadata } })
   return NextResponse.json(updated)
 }
 
-export async function DELETE(_req: Request, { params }: { params: { partId: string } }) {
+export async function DELETE(_req: Request, { params }: { params: Promise<{ partId: string }> }) {
   const user = await getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  const owned = await assertPartOwnership(user.id, params.partId)
+  const { partId } = await params
+  const owned = await assertPartOwnership(user.id, partId)
   if (!owned) return NextResponse.json({ error: 'Not found' }, { status: 404 })
-  await prisma.farmPart.delete({ where: { id: params.partId } })
+  await prisma.farmPart.delete({ where: { id: partId } })
   return NextResponse.json({ ok: true })
 }

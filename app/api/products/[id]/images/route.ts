@@ -26,7 +26,7 @@ async function getUserFromRequest() {
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const user = await getUserFromRequest();
@@ -42,10 +42,12 @@ export async function POST(
       return NextResponse.json({ error: 'Farmer profile not found' }, { status: 404 });
     }
 
+    const { id } = await params;
+
     // Check if the product exists and belongs to this farmer
     const product = await prisma.product.findUnique({
       where: {
-        id: params.id,
+        id,
         farmerId: farmer.id,
       },
     });

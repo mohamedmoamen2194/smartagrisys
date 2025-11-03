@@ -47,7 +47,7 @@ export function FarmerSidebar() {
       <SidebarHeader className="border-b">
         <div className="flex items-center justify-between px-3 sm:px-4 py-3">
           <div className="flex items-center gap-2 min-w-0">
-            <Leaf className="h-5 w-5 sm:h-6 sm:w-6 text-green-600 flex-shrink-0" />
+            <Leaf className="h-5 w-5 sm:h-6 sm:w-6 flex-shrink-0" style={{color: 'hsl(var(--primary))'}} />
             <h1 className="text-base sm:text-lg font-bold truncate">AgriSmart</h1>
           </div>
           <SidebarTrigger className="flex-shrink-0 md:hidden" />

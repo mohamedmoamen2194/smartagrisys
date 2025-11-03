@@ -11,16 +11,11 @@ export interface FarmPartModel {
   cropColor?: string
 }
 
-export const DEFAULT_COLORS = [
-  '#a8c69f',
-  '#94b88b',
-  '#7fa977',
-  '#6b9a63',
-  '#578b4f',
-]
+import { getPalette, isDarkMode } from "@/components/farm/palette"
 
 export function getColor(index: number) {
-  return DEFAULT_COLORS[index % DEFAULT_COLORS.length]
+  const palette = getPalette(isDarkMode())
+  return palette[index % palette.length]
 }
 
 

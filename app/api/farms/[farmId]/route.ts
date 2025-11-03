@@ -23,10 +23,11 @@ async function assertFarmOwnership(userId: string, farmId: string) {
   return farm
 }
 
-export async function GET(_req: Request, { params }: { params: { farmId: string } }) {
+export async function GET(_req: Request, { params }: { params: Promise<{ farmId: string }> }) {
   const user = await getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  const farm = await assertFarmOwnership(user.id, params.farmId)
+  const { farmId } = await params
+  const farm = await assertFarmOwnership(user.id, farmId)
   if (!farm) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
   const data = await prisma.farm.findUnique({
@@ -36,10 +37,11 @@ export async function GET(_req: Request, { params }: { params: { farmId: string 
   return NextResponse.json(data)
 }
 
-export async function PATCH(req: Request, { params }: { params: { farmId: string } }) {
+export async function PATCH(req: Request, { params }: { params: Promise<{ farmId: string }> }) {
   const user = await getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  const farm = await assertFarmOwnership(user.id, params.farmId)
+  const { farmId } = await params
+  const farm = await assertFarmOwnership(user.id, farmId)
   if (!farm) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
   const body = await req.json()
@@ -48,10 +50,11 @@ export async function PATCH(req: Request, { params }: { params: { farmId: string
   return NextResponse.json(updated)
 }
 
-export async function DELETE(_req: Request, { params }: { params: { farmId: string } }) {
+export async function DELETE(_req: Request, { params }: { params: Promise<{ farmId: string }> }) {
   const user = await getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  const farm = await assertFarmOwnership(user.id, params.farmId)
+  const { farmId } = await params
+  const farm = await assertFarmOwnership(user.id, farmId)
   if (!farm) return NextResponse.json({ error: 'Not found' }, { status: 404 })
   await prisma.farm.delete({ where: { id: farm.id } })
   return NextResponse.json({ ok: true })

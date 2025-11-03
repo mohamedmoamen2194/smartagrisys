@@ -26,14 +26,15 @@ async function assertPartOwnership(userId: string, partId: string) {
   return part
 }
 
-export async function POST(_req: Request, { params }: { params: { partId: string; sensorId: string } }) {
+export async function POST(_req: Request, { params }: { params: Promise<{ partId: string; sensorId: string }> }) {
   const user = await getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  const part = await assertPartOwnership(user.id, params.partId)
+  const { partId, sensorId } = await params
+  const part = await assertPartOwnership(user.id, partId)
   if (!part) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
   // ensure sensor exists
-  const sensor = await prisma.sensor.findUnique({ where: { id: params.sensorId } })
+  const sensor = await prisma.sensor.findUnique({ where: { id: sensorId } })
   if (!sensor) return NextResponse.json({ error: 'Sensor not found' }, { status: 404 })
 
   const link = await prisma.partSensor.upsert({
@@ -44,12 +45,13 @@ export async function POST(_req: Request, { params }: { params: { partId: string
   return NextResponse.json(link, { status: 201 })
 }
 
-export async function DELETE(_req: Request, { params }: { params: { partId: string; sensorId: string } }) {
+export async function DELETE(_req: Request, { params }: { params: Promise<{ partId: string; sensorId: string }> }) {
   const user = await getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  const part = await assertPartOwnership(user.id, params.partId)
+  const { partId, sensorId } = await params
+  const part = await assertPartOwnership(user.id, partId)
   if (!part) return NextResponse.json({ error: 'Not found' }, { status: 404 })
-  await prisma.partSensor.delete({ where: { farmPartId_sensorId: { farmPartId: part.id, sensorId: params.sensorId } } })
+  await prisma.partSensor.delete({ where: { farmPartId_sensorId: { farmPartId: part.id, sensorId } } })
   return NextResponse.json({ ok: true })
 }
 
