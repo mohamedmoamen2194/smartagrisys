@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ShoppingCart, Search, Eye, Package, Truck, XCircle } from "lucide-react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { toast } from "sonner"
+import { FarmerPageHeader } from "@/components/farmer/page-header"
 
 const STATUS_OPTIONS = ["PENDING", "PROCESSING", "SHIPPED", "DELIVERED", "CANCELLED"]
 
@@ -128,11 +129,8 @@ export default function OrdersPage() {
   }
 
   return (
-    <div className="container mx-auto py-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold tracking-tight">Order Management</h1>
-        <Button variant="outline">Export Orders</Button>
-      </div>
+    <div className="w-full px-4 sm:px-6 lg:px-8 py-6">
+      <FarmerPageHeader title="Order Management" actions={<Button variant="outline">Export Orders</Button>} />
 
       <div className="grid gap-4 md:grid-cols-4 mt-6">
         <Card>

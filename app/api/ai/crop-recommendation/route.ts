@@ -1,7 +1,51 @@
 import { NextRequest, NextResponse } from "next/server"
 
-// Mock crop recommendation logic
-function predictCrop(features: number[]): string {
+// MCB Backend Configuration
+const MCB_BACKEND_URL = process.env.MCB_BACKEND_URL || 'http://localhost:8001'
+
+// Call MCB backend for crop recommendation
+async function getCropRecommendationFromMCB(features: number[]): Promise<any> {
+  try {
+    // Format the features as a natural language query for MCB
+    const [nitrogen, phosphorus, potassium, temperature, humidity, ph, rainfall] = features
+    const query = `recommend a crop when nitrogen=${nitrogen}, phosphorus=${phosphorus}, potassium=${potassium}, temperature=${temperature}, humidity=${humidity}, ph=${ph}, rainfall=${rainfall}`
+    
+    const response = await fetch(`${MCB_BACKEND_URL}/mcb/ask`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        message: query,
+        user_id: `crop_rec_${Date.now()}`,
+        user_type: 'farmer'
+      })
+    })
+
+    if (!response.ok) {
+      throw new Error(`MCB Backend error: ${response.status}`)
+    }
+
+    const textResponse = await response.text()
+    
+    // Try to extract crop name from the response
+    const cropMatch = textResponse.match(/(?:recommended|crop|suggest|plant)\s+(?:is\s+)?([a-zA-Z]+)/i)
+    const recommendedCrop = cropMatch ? cropMatch[1].toLowerCase() : 'rice' // fallback
+    
+    return {
+      recommendedCrop,
+      confidence: 0.95,
+      reasoning: textResponse,
+      source: 'mcb_backend'
+    }
+  } catch (error) {
+    console.error('MCB Backend connection failed:', error)
+    throw error
+  }
+}
+
+// Fallback crop recommendation logic
+function predictCropFallback(features: number[]): string {
   const [nitrogen, phosphorus, potassium, temperature, humidity, ph, rainfall] = features
   
   // Simple rule-based prediction for demo
@@ -40,20 +84,40 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Use mock prediction instead of external API
     const features = [nitrogen, phosphorus, potassium, temperature, humidity, ph, rainfall]
-    const recommendedCrop = predictCrop(features)
     
-    // Enhance the response with additional context
-    const enhancedResponse = {
-      recommendedCrop,
-      confidence: "high",
-      reasoning: `Based on your soil conditions (N: ${nitrogen}, P: ${phosphorus}, K: ${potassium}, pH: ${ph}) and weather (${temperature}°C, ${humidity}% humidity, ${rainfall}mm rainfall), ${recommendedCrop} is the optimal choice.`,
-      alternatives: getAlternativeCrops(recommendedCrop, { nitrogen, phosphorus, potassium, temperature, humidity, ph, rainfall }),
-      careInstructions: getCareInstructions(recommendedCrop),
-    }
+    try {
+      // Try to get recommendation from MCB backend first
+      const mcbResult = await getCropRecommendationFromMCB(features)
+      
+      // Enhance the response with additional context
+      const enhancedResponse = {
+        recommendedCrop: mcbResult.recommendedCrop,
+        confidence: mcbResult.confidence,
+        reasoning: mcbResult.reasoning,
+        alternatives: getAlternativeCrops(mcbResult.recommendedCrop, { nitrogen, phosphorus, potassium, temperature, humidity, ph, rainfall }),
+        careInstructions: getCareInstructions(mcbResult.recommendedCrop),
+        source: mcbResult.source
+      }
 
-    return NextResponse.json(enhancedResponse)
+      return NextResponse.json(enhancedResponse)
+    } catch (mcbError) {
+      console.warn("MCB backend unavailable, using fallback:", mcbError)
+      
+      // Fallback to local prediction if MCB is unavailable
+      const recommendedCrop = predictCropFallback(features)
+      
+      const fallbackResponse = {
+        recommendedCrop,
+        confidence: 0.7,
+        reasoning: `Based on your soil conditions (N: ${nitrogen}, P: ${phosphorus}, K: ${potassium}, pH: ${ph}) and weather (${temperature}°C, ${humidity}% humidity, ${rainfall}mm rainfall), ${recommendedCrop} is the optimal choice. (Note: Using fallback prediction as AI models are temporarily unavailable)`,
+        alternatives: getAlternativeCrops(recommendedCrop, { nitrogen, phosphorus, potassium, temperature, humidity, ph, rainfall }),
+        careInstructions: getCareInstructions(recommendedCrop),
+        source: 'fallback'
+      }
+
+      return NextResponse.json(fallbackResponse)
+    }
   } catch (error) {
     console.error("Crop recommendation API error:", error)
     return NextResponse.json(

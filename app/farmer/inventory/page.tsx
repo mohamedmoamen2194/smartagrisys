@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/select"
 import { Label } from "@/components/ui/label"
 import { toast } from "sonner"
+import { FarmerPageHeader } from "@/components/farmer/page-header"
 
 interface Product {
   id: string
@@ -502,11 +503,11 @@ export default function InventoryPage() {
     : inventoryItems
 
   if (isLoading) {
-    return <div className="container mx-auto py-6">Loading inventory...</div>
+    return <div className="w-full px-4 sm:px-6 lg:px-8 py-6">Loading inventory...</div>
   }
 
   if (error) {
-    return <div className="container mx-auto py-6 text-red-500">Error: {error}</div>
+    return <div className="w-full px-4 sm:px-6 lg:px-8 py-6 text-red-500">Error: {error}</div>
   }
 
   const totalQuantity = inventoryItems.reduce((sum, item) => sum + item.quantity, 0)
@@ -515,11 +516,8 @@ export default function InventoryPage() {
   const inStockCount = inventoryItems.filter(item => item.quantity > item.minThreshold).length
 
   return (
-    <div className="container mx-auto py-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold tracking-tight">Inventory Management</h1>
-        <AddDialog onAdd={handleAddInventory} />
-      </div>
+    <div className="w-full px-4 sm:px-6 lg:px-8 py-6">
+      <FarmerPageHeader title="Inventory Management" actions={<AddDialog onAdd={handleAddInventory} />} />
 
       <div className="grid gap-4 md:grid-cols-4 mt-6">
         <Card>

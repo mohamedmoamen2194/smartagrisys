@@ -41,6 +41,7 @@ export default function MCBChatInterface({ userId, userType, onModelSelected }: 
   const [isLoading, setIsLoading] = useState(false)
   const [selectedImage, setSelectedImage] = useState<File | null>(null)
   const [sessionId, setSessionId] = useState<string>('')
+  const [isImageUploadInProgress, setIsImageUploadInProgress] = useState(false)  // ← NEW FLAG
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const addMessage = (message: Omit<Message, 'id' | 'timestamp'>) => {
@@ -67,8 +68,10 @@ export default function MCBChatInterface({ userId, userType, onModelSelected }: 
 
     try {
       let response
+      const wasImageUpload = !!selectedImage  // Remember if this was an image upload
       
       if (selectedImage) {
+        setIsImageUploadInProgress(true)  // ← SET FLAG
         // Send message with image
         const formData = new FormData()
         formData.append('action', 'analyze-with-image')
@@ -105,6 +108,22 @@ export default function MCBChatInterface({ userId, userType, onModelSelected }: 
 
       const mcbResult = await response.json()
       
+      console.log('=== FRONTEND RESPONSE DEBUG ===')
+      console.log('Full mcbResult:', JSON.stringify(mcbResult, null, 2))
+      console.log('mcbResult.response length:', mcbResult.response?.length || 'undefined')
+      console.log('mcbResult.response preview:', mcbResult.response?.substring(0, 100) || 'undefined')
+      console.log('mcbResult.image_processed:', mcbResult.image_processed)
+      console.log('mcbResult.source:', mcbResult.source)
+      
+      // CRITICAL: Check if this is actually the disease detection response
+      if (mcbResult.image_processed && mcbResult.response && 
+          !mcbResult.response.includes("Hello! I'm your AI-powered agricultural assistant")) {
+        console.log('✅ RECEIVED ACTUAL DISEASE DETECTION RESPONSE!')
+      } else {
+        console.log('❌ RECEIVED GENERIC/FALLBACK RESPONSE')
+        console.log('Response contains generic help:', mcbResult.response?.includes("Hello! I'm your AI-powered agricultural assistant"))
+      }
+      
       if (mcbResult.error) {
         throw new Error(mcbResult.error)
       }
@@ -117,6 +136,12 @@ export default function MCBChatInterface({ userId, userType, onModelSelected }: 
       // Create bot response
       let botContent = generateBotResponse(mcbResult)
       
+      console.log('=== BOT CONTENT DEBUG ===')
+      console.log('Generated bot content length:', botContent.length)
+      console.log('Generated bot content preview:', botContent.substring(0, 200))
+      console.log('Bot content contains disease detection:', botContent.includes('DISEASE') || botContent.includes('Bacterial Spot'))
+      console.log('Bot content contains generic help:', botContent.includes("Hello! I'm your AI-powered agricultural assistant"))
+      
       const botMessage = addMessage({
         type: 'bot',
         content: botContent,
@@ -126,6 +151,20 @@ export default function MCBChatInterface({ userId, userType, onModelSelected }: 
           executionTime: mcbResult.execution_time_ms
         }
       })
+      
+      console.log('Bot message added to chat:', {
+        contentLength: botContent.length,
+        hasMetadata: !!botMessage.metadata,
+        modelName: botMessage.metadata?.selectedModel?.name,
+        messageId: botMessage.id
+      })
+      
+      // Check if this is the disease detection response we expect
+      if (botContent.includes('DISEASE') && !botContent.includes("Hello! I'm your AI-powered agricultural assistant")) {
+        console.log('🎉 SUCCESS: Disease detection response correctly added to chat!')
+      } else {
+        console.log('❌ FAILURE: Wrong response added to chat')
+      }
 
       // Notify parent component about model selection
       if (onModelSelected && mcbResult.selected_model) {
@@ -133,8 +172,20 @@ export default function MCBChatInterface({ userId, userType, onModelSelected }: 
       }
 
       // If model can execute immediately and user seems to want results
-      if (mcbResult.can_execute && shouldAutoExecute(inputMessage)) {
+      // CRITICAL: NEVER auto-execute for image uploads since they already execute the model
+      if (wasImageUpload) {
+        console.log('⏭️ FORCE SKIPPING auto-execution because this was an image upload')
+      } else if (mcbResult.can_execute && shouldAutoExecute(inputMessage) && 
+                 mcbResult.selected_model?.type !== 'crop_recommendation') {
+        console.log('🚀 Auto-executing model for text query...')
         await executeModel(mcbResult.selected_model.model_id, mcbResult.session_id)
+      } else {
+        console.log('⏭️ Skipping auto-execution', { 
+          wasImageUpload, 
+          can_execute: mcbResult.can_execute,
+          shouldAutoExecute: shouldAutoExecute(inputMessage),
+          modelType: mcbResult.selected_model?.type
+        })
       }
 
     } catch (error) {
@@ -147,6 +198,7 @@ export default function MCBChatInterface({ userId, userType, onModelSelected }: 
     } finally {
       setIsLoading(false)
       setSelectedImage(null)
+      setIsImageUploadInProgress(false)  // ← CLEAR FLAG
       if (fileInputRef.current) {
         fileInputRef.current.value = ''
       }
@@ -154,9 +206,26 @@ export default function MCBChatInterface({ userId, userType, onModelSelected }: 
   }
 
   const executeModel = async (modelId: string, sessionId: string) => {
+    console.log('🚫 EXECUTE MODEL CALLED - Checking if should proceed...')
+    console.trace('🚫 EXECUTE MODEL CALL STACK:')
+
+    // CRITICAL: Prevent execution for image uploads since they already execute the model
+    if (isImageUploadInProgress) {
+      console.log('🚫 BLOCKING executeModel - image upload in progress!')
+      return
+    }
+
+    console.log('✅ Proceeding with executeModel for text query')
     setIsLoading(true)
-    
+
     try {
+      console.log('🔍 EXECUTE MODEL: Sending request with:', {
+        action: 'execute',
+        model_id: modelId,
+        session_id: sessionId,
+        inputs: {}
+      })
+
       const response = await fetch('/api/mcb', {
         method: 'POST',
         headers: {
@@ -166,22 +235,28 @@ export default function MCBChatInterface({ userId, userType, onModelSelected }: 
           action: 'execute',
           model_id: modelId,
           session_id: sessionId,
-          inputs: selectedImage ? { image: selectedImage } : {}
+          inputs: {}
         })
       })
+
+      console.log('🔍 EXECUTE MODEL: Response status:', response.status)
 
       if (!response.ok) {
         throw new Error('Failed to execute model')
       }
 
       const result = await response.json()
-      
+      console.log('🔍 EXECUTE MODEL: Received result:', result)
+
       if (result.error) {
         throw new Error(result.error)
       }
 
       const botContent = generateExecutionResponse(result)
-      
+
+      console.log('📝 EXECUTE MODEL: Adding bot message from executeModel')
+      console.log('📝 EXECUTE MODEL: Bot content preview:', botContent.substring(0, 100))
+
       addMessage({
         type: 'bot',
         content: botContent,
@@ -202,6 +277,28 @@ export default function MCBChatInterface({ userId, userType, onModelSelected }: 
   }
 
   const generateBotResponse = (mcbResult: any): string => {
+    console.log('🔍 GENERATE BOT RESPONSE INPUT:', {
+      image_processed: mcbResult.image_processed,
+      response_length: mcbResult.response?.length,
+      response_preview: mcbResult.response?.substring(0, 100),
+      source: mcbResult.source,
+      selected_model: mcbResult.selected_model?.name
+    })
+    
+    // For image analysis, the response is already formatted by the MCB backend
+    if (mcbResult.image_processed) {
+      console.log('🎯 Using pre-formatted image analysis response')
+      return mcbResult.response
+    }
+
+    // FIX: For text queries, also use the MCB backend response directly
+    if (mcbResult.response && mcbResult.source === 'real_mcb_backend') {
+      console.log('🎯 Using MCB backend response for text query')
+      return mcbResult.response
+    }
+
+    // Fallback to generic response formatting only if no MCB response
+    console.log('📝 Using fallback text query response formatting')
     const model = mcbResult.selected_model
     const confidence = mcbResult.confidence
     const reasoning = mcbResult.reasoning
@@ -293,8 +390,9 @@ export default function MCBChatInterface({ userId, userType, onModelSelected }: 
   }
 
   const shouldAutoExecute = (message: string): boolean => {
-    const autoExecuteKeywords = ['analyze', 'detect', 'identify', 'what is', 'help me', 'check']
-    return autoExecuteKeywords.some(keyword => message.toLowerCase().includes(keyword))
+    // Disable auto-execution since MCB backend already executes models
+    console.log('🚫 Auto-execution disabled - MCB backend handles execution')
+    return false
   }
 
   const handleImageSelect = (event: React.ChangeEvent<HTMLInputElement>) => {

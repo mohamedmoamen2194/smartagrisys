@@ -1,137 +1,199 @@
 """
 Model Executor - Handles actual model execution and result processing
 """
-import aiohttp
 import asyncio
 import json
 import tempfile
 import os
-from typing import Dict, Any, Optional
+import base64
+import numpy as np
+import requests
+from typing import Dict, Any, Optional, List
 import logging
 from datetime import datetime
+from PIL import Image
+import io
+
+# Import your actual model inference functions
+import sys
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+
+from crop_rec.crop_recommendation_inference import predict_crop
+from disease_detection.disease_detection_inference import predict
 
 from .model_registry import ModelMetadata, ModelType, InputType
 
 logger = logging.getLogger(__name__)
 
 class ModelExecutor:
-    """Executes models and processes results"""
+    """Executes models and processes results using your trained models directly"""
     
-    def __init__(self, base_url: str = "http://localhost:8000"):
-        self.base_url = base_url
-        self.session = None
-    
-    async def _get_session(self):
-        """Get or create aiohttp session"""
-        if self.session is None or self.session.closed:
-            self.session = aiohttp.ClientSession()
-        return self.session
+    def __init__(self):
+        """Initialize model executor with direct model access"""
+        logger.info("ModelExecutor initialized with direct model access")
+        
+    def _validate_inputs(self, model: ModelMetadata, inputs: Dict[str, Any]) -> None:
+        """Validate inputs for the specific model"""
+        if model.model_type == ModelType.DISEASE_DETECTION:
+            if 'image' not in inputs:
+                raise ValueError("Disease detection requires an 'image' input")
+        elif model.model_type == ModelType.CROP_RECOMMENDATION:
+            if 'features' not in inputs and 'soil_data' not in inputs:
+                raise ValueError("Crop recommendation requires 'features' or 'soil_data' input")
     
     async def execute_model(self, model: ModelMetadata, inputs: Dict[str, Any]) -> Dict[str, Any]:
         """Execute a model with given inputs"""
         
+        start_time = datetime.now()
+        
         try:
             if model.model_type == ModelType.DISEASE_DETECTION:
-                return await self._execute_disease_detection(model, inputs)
+                result = await self._execute_disease_detection(model, inputs)
             elif model.model_type == ModelType.CROP_RECOMMENDATION:
-                return await self._execute_crop_recommendation(model, inputs)
+                result = await self._execute_crop_recommendation(model, inputs)
             elif model.model_type == ModelType.FRUIT_SIZING:
-                return await self._execute_fruit_sizing(model, inputs)
+                result = await self._execute_fruit_sizing(model, inputs)
             else:
                 raise ValueError(f"Unsupported model type: {model.model_type}")
+            
+            # Add execution time
+            execution_time = (datetime.now() - start_time).total_seconds() * 1000
+            result['execution_time_ms'] = int(execution_time)
+            
+            return result
                 
         except Exception as e:
             logger.error(f"Error executing model {model.model_id}: {str(e)}")
             raise
     
     async def _execute_disease_detection(self, model: ModelMetadata, inputs: Dict[str, Any]) -> Dict[str, Any]:
-        """Execute disease detection model"""
+        """Execute disease detection model using your trained model directly"""
         
-        if 'image' not in inputs:
-            raise ValueError("Disease detection requires an image input")
+        self._validate_inputs(model, inputs)
         
-        session = await self._get_session()
-        url = f"{self.base_url}{model.endpoint}"
-        
-        # Handle different image input formats
         image_data = inputs['image']
+        temp_file_path = None
         
-        if isinstance(image_data, str):
-            # Base64 encoded image
-            import base64
-            image_bytes = base64.b64decode(image_data)
-            
-            # Create temporary file
-            with tempfile.NamedTemporaryFile(delete=False, suffix='.jpg') as temp_file:
-                temp_file.write(image_bytes)
-                temp_file_path = temp_file.name
-            
-            try:
-                with open(temp_file_path, 'rb') as f:
-                    data = aiohttp.FormData()
-                    data.add_field('file', f, filename='image.jpg', content_type='image/jpeg')
+        try:
+            # Handle different image input formats and create temporary file
+            if isinstance(image_data, str):
+                # Base64 encoded image
+                try:
+                    # Remove data URL prefix if present
+                    if image_data.startswith('data:image'):
+                        image_data = image_data.split(',')[1]
                     
-                    async with session.post(url, data=data) as response:
-                        if response.status == 200:
-                            result = await response.json()
-                            return self._enhance_disease_result(result)
-                        else:
-                            error_text = await response.text()
-                            raise Exception(f"Model execution failed: {error_text}")
-            finally:
-                # Clean up temp file
-                if os.path.exists(temp_file_path):
-                    os.unlink(temp_file_path)
-        
-        elif hasattr(image_data, 'read'):
-            # File-like object
-            data = aiohttp.FormData()
-            data.add_field('file', image_data, filename='image.jpg', content_type='image/jpeg')
+                    image_bytes = base64.b64decode(image_data)
+                    
+                    # Create temporary file for your model
+                    with tempfile.NamedTemporaryFile(delete=False, suffix='.jpg') as temp_file:
+                        temp_file.write(image_bytes)
+                        temp_file_path = temp_file.name
+                        
+                except Exception as e:
+                    raise ValueError(f"Invalid base64 image data: {str(e)}")
+                    
+            elif hasattr(image_data, 'read'):
+                # File-like object
+                with tempfile.NamedTemporaryFile(delete=False, suffix='.jpg') as temp_file:
+                    temp_file.write(image_data.read())
+                    temp_file_path = temp_file.name
+                    
+            elif isinstance(image_data, bytes):
+                # Raw bytes
+                with tempfile.NamedTemporaryFile(delete=False, suffix='.jpg') as temp_file:
+                    temp_file.write(image_data)
+                    temp_file_path = temp_file.name
+                    
+            else:
+                raise ValueError("Invalid image format. Expected base64 string, bytes, or file-like object")
             
-            async with session.post(url, data=data) as response:
-                if response.status == 200:
-                    result = await response.json()
-                    return self._enhance_disease_result(result)
-                else:
-                    error_text = await response.text()
-                    raise Exception(f"Model execution failed: {error_text}")
-        
-        else:
-            raise ValueError("Invalid image format. Expected base64 string or file-like object")
+            # Validate image file
+            try:
+                with Image.open(temp_file_path) as img:
+                    if img.format not in ['JPEG', 'PNG', 'JPG']:
+                        logger.warning(f"Image format {img.format} may not be optimal")
+            except Exception as e:
+                raise ValueError(f"Invalid image file: {str(e)}")
+            
+            # Execute your actual disease detection model
+            logger.info(f"Executing disease detection on image: {temp_file_path}")
+            result = predict(temp_file_path)  # This uses your trained model with proper preprocessing
+            
+            # Enhance result with additional information
+            enhanced_result = self._enhance_disease_result(result)
+            
+            logger.info(f"Disease detection completed: {result.get('disease', 'Unknown')} (confidence: {result.get('confidence', 0):.2f})")
+            
+            return enhanced_result
+            
+        except Exception as e:
+            logger.error(f"Disease detection execution failed: {str(e)}")
+            raise
+            
+        finally:
+            # Clean up temporary file
+            if temp_file_path and os.path.exists(temp_file_path):
+                try:
+                    os.unlink(temp_file_path)
+                except Exception as e:
+                    logger.warning(f"Failed to clean up temp file {temp_file_path}: {str(e)}")
     
     async def _execute_crop_recommendation(self, model: ModelMetadata, inputs: Dict[str, Any]) -> Dict[str, Any]:
-        """Execute crop recommendation model"""
+        """Execute crop recommendation model using your trained model directly"""
         
-        # Extract features from inputs
-        if 'features' in inputs:
-            features = inputs['features']
-        elif 'soil_data' in inputs:
-            # Convert soil data to features array
-            soil_data = inputs['soil_data']
-            features = [
-                soil_data.get('nitrogen', 0),
-                soil_data.get('phosphorus', 0),
-                soil_data.get('potassium', 0),
-                soil_data.get('temperature', 25),
-                soil_data.get('humidity', 50),
-                soil_data.get('ph', 7),
-                soil_data.get('rainfall', 100)
-            ]
-        else:
-            raise ValueError("Crop recommendation requires features or soil_data")
+        self._validate_inputs(model, inputs)
         
-        session = await self._get_session()
-        url = f"{self.base_url}{model.endpoint}"
-        
-        payload = {"features": features}
-        
-        async with session.post(url, json=payload) as response:
-            if response.status == 200:
-                result = await response.json()
-                return self._enhance_crop_result(result, features)
+        try:
+            # Extract and validate features
+            if 'features' in inputs:
+                features = inputs['features']
+            elif 'soil_data' in inputs:
+                # Convert soil data to features array [N, P, K, temperature, humidity, pH, rainfall]
+                soil_data = inputs['soil_data']
+                features = [
+                    float(soil_data.get('nitrogen', 20)),      # N
+                    float(soil_data.get('phosphorus', 15)),    # P  
+                    float(soil_data.get('potassium', 25)),     # K
+                    float(soil_data.get('temperature', 25)),   # Temperature (°C)
+                    float(soil_data.get('humidity', 60)),      # Humidity (%)
+                    float(soil_data.get('ph', 6.5)),          # pH
+                    float(soil_data.get('rainfall', 100))     # Rainfall (mm)
+                ]
             else:
-                error_text = await response.text()
-                raise Exception(f"Model execution failed: {error_text}")
+                raise ValueError("Crop recommendation requires 'features' or 'soil_data'")
+            
+            # Validate features array
+            if not isinstance(features, (list, tuple, np.ndarray)):
+                raise ValueError("Features must be a list, tuple, or numpy array")
+            
+            if len(features) != 7:
+                raise ValueError(f"Features must contain exactly 7 values [N,P,K,temp,humidity,pH,rainfall], got {len(features)}")
+            
+            # Convert to proper format for your model
+            features = [float(f) for f in features]
+            
+            logger.info(f"Executing crop recommendation with features: {features}")
+            
+            # Execute your actual crop recommendation model
+            crop_prediction = predict_crop(features)  # This uses your trained Random Forest model
+            
+            # Create result in expected format
+            result = {
+                'crop': crop_prediction,
+                'confidence': 0.85  # Your model doesn't return confidence, so we use a default
+            }
+            
+            # Enhance result with additional information
+            enhanced_result = self._enhance_crop_result(result, features)
+            
+            logger.info(f"Crop recommendation completed: {crop_prediction}")
+            
+            return enhanced_result
+            
+        except Exception as e:
+            logger.error(f"Crop recommendation execution failed: {str(e)}")
+            raise
     
     async def _execute_fruit_sizing(self, model: ModelMetadata, inputs: Dict[str, Any]) -> Dict[str, Any]:
         """Execute fruit sizing model (placeholder - implement when model is available)"""
@@ -155,8 +217,103 @@ class ModelExecutor:
         
         enhanced_result = result.copy()
         
-        # Add treatment recommendations based on disease
-        disease = result.get('disease', '').lower()
+        # Try to get dynamic treatment recommendations
+        disease = result.get('disease', '')
+        confidence = result.get('confidence', 0)
+        
+        try:
+            # Use LLM for dynamic treatment recommendations if available
+            dynamic_treatments = self._get_dynamic_treatment_recommendations(disease, confidence)
+            if dynamic_treatments:
+                enhanced_result['treatment_recommendations'] = dynamic_treatments
+            else:
+                enhanced_result['treatment_recommendations'] = self._get_static_treatment_recommendations(disease)
+        except Exception as e:
+            logger.warning(f"Failed to get dynamic treatments: {e}")
+            enhanced_result['treatment_recommendations'] = self._get_static_treatment_recommendations(disease)
+        
+        # Add severity assessment
+        if confidence > 0.8:
+            enhanced_result['severity'] = 'HIGH'
+            enhanced_result['urgency'] = 'Immediate action required'
+        elif confidence > 0.6:
+            enhanced_result['severity'] = 'MEDIUM'
+            enhanced_result['urgency'] = 'Action needed within 24-48 hours'
+        else:
+            enhanced_result['severity'] = 'LOW'
+            enhanced_result['urgency'] = 'Monitor and take preventive measures'
+        
+        # Add timestamp
+        enhanced_result['analysis_timestamp'] = datetime.now().isoformat()
+        
+        return enhanced_result
+    
+    def _get_dynamic_treatment_recommendations(self, disease: str, confidence: float) -> Optional[List[str]]:
+        """Get dynamic treatment recommendations using LLM - Vercel compatible"""
+        
+        # Check if LLM is available
+        api_key = os.getenv("GROQ_API_KEY") or os.getenv("OPENAI_API_KEY")
+        if not api_key or not os.getenv("MCB_DYNAMIC_TREATMENTS", "true").lower() == "true":
+            return None
+        
+        try:
+            prompt = f"""Provide treatment recommendations for the plant disease: "{disease}"
+            
+Detection confidence: {confidence:.2f}
+
+Instructions:
+1. Provide 4-6 specific, actionable treatment steps
+2. Include both immediate and preventive measures
+3. Consider organic and chemical options
+4. Be practical for farmers
+5. Prioritize by urgency
+
+Respond ONLY with valid JSON in this format:
+{{
+    "treatments": [
+        "Immediate action 1",
+        "Treatment step 2", 
+        "Prevention measure 3",
+        "Long-term care 4"
+    ],
+    "urgency": "high|medium|low",
+    "organic_options": ["organic treatment 1", "organic treatment 2"]
+}}"""
+
+            # Make API call (reuse the LLM calling logic)
+            provider = os.getenv("LLM_PROVIDER", "groq")
+            
+            if provider == "groq":
+                response = requests.post(
+                    "https://api.groq.com/openai/v1/chat/completions",
+                    headers={
+                        "Authorization": f"Bearer {api_key}",
+                        "Content-Type": "application/json"
+                    },
+                    json={
+                        "model": "llama-3.1-8b-instant",
+                        "messages": [{"role": "user", "content": prompt}],
+                        "max_tokens": 300,
+                        "temperature": 0.1
+                    },
+                    timeout=10
+                )
+                
+                if response.status_code == 200:
+                    result = response.json()
+                    content = result['choices'][0]['message']['content']
+                    treatment_data = json.loads(content)
+                    return treatment_data.get('treatments', [])
+            
+        except Exception as e:
+            logger.warning(f"Dynamic treatment generation failed: {e}")
+            
+        return None
+    
+    def _get_static_treatment_recommendations(self, disease: str) -> List[str]:
+        """Fallback static treatment recommendations"""
+        
+        disease_lower = disease.lower()
         
         treatment_recommendations = {
             'blight': [
@@ -181,34 +338,16 @@ class ModelExecutor:
         
         # Find matching treatment
         for disease_type, treatments in treatment_recommendations.items():
-            if disease_type in disease:
-                enhanced_result['treatment_recommendations'] = treatments
-                break
+            if disease_type in disease_lower:
+                return treatments
         
-        if 'treatment_recommendations' not in enhanced_result:
-            enhanced_result['treatment_recommendations'] = [
-                "Consult with agricultural extension service",
-                "Remove affected plant parts",
-                "Monitor plant health regularly",
-                "Consider organic treatment options"
-            ]
-        
-        # Add severity assessment
-        confidence = result.get('confidence', 0)
-        if confidence > 0.8:
-            enhanced_result['severity'] = 'HIGH'
-            enhanced_result['urgency'] = 'Immediate action required'
-        elif confidence > 0.6:
-            enhanced_result['severity'] = 'MEDIUM'
-            enhanced_result['urgency'] = 'Action needed within 24-48 hours'
-        else:
-            enhanced_result['severity'] = 'LOW'
-            enhanced_result['urgency'] = 'Monitor and take preventive measures'
-        
-        # Add timestamp
-        enhanced_result['analysis_timestamp'] = datetime.now().isoformat()
-        
-        return enhanced_result
+        # Default recommendations
+        return [
+            "Consult with agricultural extension service",
+            "Remove affected plant parts",
+            "Monitor plant health regularly",
+            "Consider organic treatment options"
+        ]
     
     def _enhance_crop_result(self, result: Dict[str, Any], features: list) -> Dict[str, Any]:
         """Enhance crop recommendation result with additional information"""
@@ -293,6 +432,5 @@ class ModelExecutor:
         return enhanced_result
     
     async def close(self):
-        """Close the aiohttp session"""
-        if self.session and not self.session.closed:
-            await self.session.close()
+        """Cleanup method (no longer needed since we're using direct model access)"""
+        pass

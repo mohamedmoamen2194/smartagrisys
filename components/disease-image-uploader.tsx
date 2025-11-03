@@ -4,12 +4,17 @@ import { useState, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Upload, X, Microscope } from "lucide-react"
 
-export function DiseaseImageUploader() {
+interface DiseaseImageUploaderProps {
+  onResult?: (result: any) => void
+  onError?: (error: string) => void
+  onLoading?: (loading: boolean) => void
+}
+
+export function DiseaseImageUploader({ onResult, onError, onLoading }: DiseaseImageUploaderProps) {
   const [isDragging, setIsDragging] = useState(false)
   const [image, setImage] = useState<File | null>(null)
   const [preview, setPreview] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
-  const [result, setResult] = useState<{ disease: string; confidence: number } | null>(null)
   const [error, setError] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
 
@@ -30,8 +35,8 @@ export function DiseaseImageUploader() {
       if (file.type.startsWith("image/")) {
         setImage(file)
         setPreview(URL.createObjectURL(file))
-        setResult(null)
         setError(null)
+        onResult?.(null) // Clear results in parent
       }
     }
   }
@@ -41,23 +46,23 @@ export function DiseaseImageUploader() {
       const file = e.target.files[0]
       setImage(file)
       setPreview(URL.createObjectURL(file))
-      setResult(null)
       setError(null)
+      onResult?.(null) // Clear results in parent
     }
   }
 
   const removeImage = () => {
     setImage(null)
     setPreview(null)
-    setResult(null)
     setError(null)
+    onResult?.(null) // Clear results in parent
   }
 
   const handleAnalyze = async () => {
     if (!image) return
     setLoading(true)
     setError(null)
-    setResult(null)
+    onLoading?.(true)
     try {
       const formData = new FormData()
       formData.append("image", image)
@@ -70,11 +75,14 @@ export function DiseaseImageUploader() {
         throw new Error(errorData.error || "Failed to analyze image")
       }
       const data = await response.json()
-      setResult(data)
+      onResult?.(data)
     } catch (err: any) {
-      setError(err.message || "An error occurred during analysis")
+      const errorMessage = err.message || "An error occurred during analysis"
+      setError(errorMessage)
+      onError?.(errorMessage)
     } finally {
       setLoading(false)
+      onLoading?.(false)
     }
   }
 
@@ -137,17 +145,6 @@ export function DiseaseImageUploader() {
 
       {error && (
         <div className="p-3 text-sm text-red-500 bg-red-50 rounded-md dark:bg-red-900/20">{error}</div>
-      )}
-
-      {result && (
-        <div className="p-4 bg-green-50 rounded-lg dark:bg-green-900/20 text-center">
-          <div className="text-2xl font-bold text-green-600 dark:text-green-400 mb-2">
-            {result.disease}
-          </div>
-          <div className="text-green-700 dark:text-green-300 mb-2">
-            Confidence: {(result.confidence * 100).toFixed(1)}%
-          </div>
-        </div>
       )}
     </div>
   )

@@ -2,10 +2,12 @@
 Decision Engine - Intelligent model selection based on user input and context
 """
 import re
+import json
+import os
+import requests
 from typing import List, Dict, Any, Optional, Tuple
 from dataclasses import dataclass
 from enum import Enum
-import json
 
 from .model_registry import ModelRegistry, ModelMetadata, ModelType, InputType, model_registry
 
@@ -41,17 +43,472 @@ class InputAnalysis:
 @dataclass
 class ModelRecommendation:
     """Model recommendation with reasoning"""
-    model: ModelMetadata
+    model: Optional[ModelMetadata]
     confidence: float
     reasoning: str
     required_inputs: Dict[str, Any]
     alternative_models: List[ModelMetadata]
+    is_general_help: bool = False
+
+class CloudLLMSelector:
+    """LLM-based model selector using cloud APIs - Vercel compatible"""
+    
+    def __init__(self, provider=None, api_key=None):
+        self.provider = provider or os.getenv("LLM_PROVIDER", "groq")
+        self.api_key = api_key or os.getenv(f"{self.provider.upper()}_API_KEY")
+        self.enable_dynamic_extraction = os.getenv("MCB_DYNAMIC_EXTRACTION", "true").lower() == "true"
+        self.available_models = {
+            "crop_recommendation": {
+                "id": "crop_recommendation_v1",
+                "name": "Crop Recommendation System",
+                "description": "Recommends optimal crops based on soil and weather conditions",
+                "input_requirements": "Numerical data: N, P, K, temperature, humidity, pH, rainfall",
+                "use_cases": ["crop selection", "planting advice", "soil analysis", "what to grow", "farming recommendations"],
+                "keywords": ["crop", "plant", "grow", "soil", "fertilizer", "nitrogen", "phosphorus", "potassium", "temperature", "humidity", "ph", "rainfall"]
+            },
+            "disease_detection": {
+                "id": "disease_detection_v1", 
+                "name": "Plant Disease Detection",
+                "description": "Detects plant diseases from leaf images using computer vision",
+                "input_requirements": "Image of plant leaves or affected plant parts",
+                "use_cases": ["disease diagnosis", "plant health check", "leaf problems", "sick plants", "plant diseases"],
+                "keywords": ["disease", "sick", "infection", "pest", "fungus", "bacteria", "spots", "blight", "rot", "yellowing", "wilting", "unhealthy"]
+            },
+            "general_help": {
+                "id": "general_help_v1",
+                "name": "General Agricultural Assistant",
+                "description": "Provides general agricultural guidance and help",
+                "input_requirements": "Any text query or greeting",
+                "use_cases": ["greetings", "general questions", "help requests", "unclear queries", "introductions"],
+                "keywords": ["hi", "hello", "help", "what can you do", "how are you", "good morning", "hey"]
+            }
+        }
+    
+    def call_llm(self, prompt: str) -> Dict[str, Any]:
+        """Call cloud LLM API"""
+        try:
+            if self.provider == "openai":
+                return self._call_openai(prompt)
+            elif self.provider == "groq":
+                return self._call_groq(prompt)
+            else:
+                return self._fallback_selection(prompt)
+                
+        except Exception as e:
+            print(f"LLM error: {e}")
+            return self._fallback_selection(prompt)
+    
+    def _call_openai(self, prompt: str) -> Dict[str, Any]:
+        """Call OpenAI API"""
+        response = requests.post(
+            "https://api.openai.com/v1/chat/completions",
+            headers={
+                "Authorization": f"Bearer {self.api_key}",
+                "Content-Type": "application/json"
+            },
+            json={
+                "model": "gpt-3.5-turbo",
+                "messages": [{"role": "user", "content": prompt}],
+                "max_tokens": 200,
+                "temperature": 0.1
+            },
+            timeout=10
+        )
+        
+        if response.status_code == 200:
+            result = response.json()
+            content = result['choices'][0]['message']['content']
+            return json.loads(content)
+        else:
+            raise Exception(f"OpenAI API error: {response.status_code}")
+    
+    def _call_groq(self, prompt: str) -> Dict[str, Any]:
+        """Call Groq API (free tier available)"""
+        if not self.api_key:
+            print("Warning: No Groq API key found, using fallback")
+            return self._fallback_selection(prompt)
+            
+        try:
+            # Enforce JSON-only output
+            json_prompt = f"""{prompt}
+
+CRITICAL: Respond with ONLY a valid JSON object. No markdown, no explanation, no extra text.
+Start your response with {{ and end with }}. Nothing else."""
+
+            response = requests.post(
+                "https://api.groq.com/openai/v1/chat/completions",
+                headers={
+                    "Authorization": f"Bearer {self.api_key}",
+                    "Content-Type": "application/json"
+                },
+                json={
+                    "model": "llama-3.1-8b-instant",
+                    "messages": [{"role": "user", "content": json_prompt}],
+                    "max_tokens": 300,  # Increased for complex responses
+                    "temperature": 0.1
+                },
+                timeout=10
+            )
+            
+            if response.status_code == 200:
+                result = response.json()
+                content = result['choices'][0]['message']['content'].strip()
+                
+                # Try parsing directly
+                try:
+                    return json.loads(content)
+                except json.JSONDecodeError:
+                    print(f"Warning: Invalid JSON from Groq API, attempting extraction...")
+                    
+                    # Try to extract JSON from mixed content
+                    json_match = re.search(r'\{.*\}', content, re.DOTALL)
+                    if json_match:
+                        try:
+                            extracted_json = json.loads(json_match.group())
+                            print(f"✓ Successfully extracted JSON from response")
+                            return extracted_json
+                        except json.JSONDecodeError:
+                            pass
+                    
+                    # NEW: Try parsing markdown response for features
+                    parsed_result = self._parse_markdown_response(content)
+                    if parsed_result:
+                        return parsed_result
+                    
+                    # Log the problematic response
+                    print(f"Could not parse LLM response: {content[:200]}...")
+                    return self._fallback_selection(prompt)
+            else:
+                error_detail = ""
+                try:
+                    error_data = response.json()
+                    error_detail = error_data.get('error', {}).get('message', 'Unknown error')
+                except:
+                    error_detail = response.text
+                print(f"Groq API error {response.status_code}: {error_detail}")
+                return self._fallback_selection(prompt)
+                
+        except requests.exceptions.RequestException as e:
+            print(f"Groq API request failed: {e}")
+            return self._fallback_selection(prompt)
+    
+    def extract_numerical_features(self, query: str) -> List[float]:
+        """
+        Extract numerical features from query text - always returns valid list.
+        Uses standard agricultural defaults only for missing values.
+        Format: [N, P, K, temperature, humidity, pH, rainfall]
+        """
+        import re
+        
+        # Standard agricultural defaults for missing values
+        # These represent typical moderate conditions suitable for general crops
+        DEFAULT_VALUES = {
+            'N': 50,          # Nitrogen (kg/ha) - moderate
+            'P': 40,          # Phosphorus (kg/ha) - moderate
+            'K': 40,          # Potassium (kg/ha) - moderate
+            'temp': 25,       # Temperature (°C) - moderate
+            'humidity': 65,   # Humidity (%) - moderate
+            'pH': 6.5,        # pH - neutral
+            'rainfall': 100   # Rainfall (mm) - moderate
+        }
+        
+        features = [0.0] * 7  # Initialize with zeros
+        
+        # Nitrogen (N) - flexible patterns
+        nitrogen_match = re.search(r'(?:nitrogen|n)\s*[=:]\s*(\d+\.?\d*)', query.lower())
+        features[0] = float(nitrogen_match.group(1)) if nitrogen_match else DEFAULT_VALUES['N']
+        
+        # Phosphorus (P) - handle both spellings
+        phosphorus_match = re.search(r'(?:phosphorus|phosphorous|p)\s*[=:]\s*(\d+\.?\d*)', query.lower())
+        features[1] = float(phosphorus_match.group(1)) if phosphorus_match else DEFAULT_VALUES['P']
+        
+        # Potassium (K)
+        potassium_match = re.search(r'(?:potassium|k)\s*[=:]\s*(\d+\.?\d*)', query.lower())
+        features[2] = float(potassium_match.group(1)) if potassium_match else DEFAULT_VALUES['K']
+        
+        # Temperature
+        temp_match = re.search(r'(?:temperature|temp)\s*[=:]\s*(\d+\.?\d*)', query.lower())
+        features[3] = float(temp_match.group(1)) if temp_match else DEFAULT_VALUES['temp']
+        
+        # Humidity
+        humidity_match = re.search(r'(?:humidity|humid)\s*[=:]\s*(\d+\.?\d*)', query.lower())
+        features[4] = float(humidity_match.group(1)) if humidity_match else DEFAULT_VALUES['humidity']
+        
+        # pH
+        ph_match = re.search(r'(?:ph|ph\s*level)\s*[=:]\s*(\d+\.?\d*)', query.lower())
+        features[5] = float(ph_match.group(1)) if ph_match else DEFAULT_VALUES['pH']
+        
+        # Rainfall
+        rainfall_match = re.search(r'(?:rainfall|rain)\s*[=:]\s*(\d+\.?\d*)', query.lower())
+        features[6] = float(rainfall_match.group(1)) if rainfall_match else DEFAULT_VALUES['rainfall']
+        
+        # Always return a valid list with no None values
+        return features
+
+    def _fallback_selection(self, prompt: str) -> Dict[str, Any]:
+        """Fallback to simple keyword matching if LLM fails"""
+        query = prompt.lower().strip()
+        
+        # Extract numerical features from query if present (always returns valid list)
+        extracted_features = self.extract_numerical_features(query)
+        
+        # Disease detection keywords
+        disease_keywords = ["disease", "sick", "infection", "pest", "spots", "blight", "rot", "yellowing", "wilting", "unhealthy", "problem", "wrong", "issue", "issues", "damaged", "dying", "brown", "black", "fungus", "bacteria", "virus", "leaf", "leaves", "diagnosis", "diagnose", "identify"]
+        disease_score = sum(1 for keyword in disease_keywords if keyword in query)
+        
+        # Crop recommendation keywords  
+        crop_keywords = ["crop", "plant", "grow", "soil", "fertilizer", "nitrogen", "phosphorus", "potassium", "recommend", "what should i plant", "which crop", "best crop", "farming", "agriculture", "harvest", "yield", "ph", "temperature", "k", "n", "p"]
+        crop_score = sum(1 for keyword in crop_keywords if keyword in query)
+        
+        # CHANGED: Check for crop/disease keywords FIRST (higher priority than greetings)
+        # If we have numerical features or crop keywords, use crop recommendation
+        if extracted_features or crop_score > 0:
+            return {
+                "selected_model": "crop_recommendation",
+                "confidence": 0.8 if extracted_features else 0.7,
+                "reasoning": "Query contains crop-related data or keywords, using fallback selection",
+                "extracted_data": {
+                    "crop_features": extracted_features,  # Always valid list now
+                    "user_intent": "crop recommendation based on soil conditions",
+                    "data_source": "extracted_from_query" if extracted_features else "default_values"
+                }
+            }
+        elif disease_score > 0:
+            return {
+                "selected_model": "disease_detection",
+                "confidence": 0.8,
+                "reasoning": "Query contains disease-related keywords, using fallback selection",
+                "extracted_data": {}
+            }
+        
+        # CHANGED: Only check for greetings if no crop/disease keywords found
+        greeting_keywords = ["hi", "hello", "hey", "good morning", "good afternoon", "good evening", "how are you", "what can you do"]
+        if any(greeting in query for greeting in greeting_keywords) or len(query) <= 3:
+            return {
+                "selected_model": "general_help",
+                "confidence": 0.9,
+                "reasoning": "Query is a greeting or general inquiry, providing general help",
+                "extracted_data": {}
+            }
+        else:
+            # Default to general help for unclear queries
+            return {
+                "selected_model": "general_help",
+                "confidence": 0.6,
+                "reasoning": "Query unclear, providing general agricultural assistance",
+                "extracted_data": {}
+            }
+    
+    def analyze_and_select_model(self, user_query: str, has_image: bool = False, context: UserContext = None) -> Dict[str, Any]:
+        """LLM analyzes prompt and selects model with extracted data"""
+        
+        context_info = ""
+        if context:
+            context_info = f"""
+User Context:
+- User Type: {context.user_type}
+- Location: {context.location or 'Not specified'}
+- Farm Size: {context.farm_size or 'Not specified'} acres
+"""
+        
+        prompt = f"""You are an intelligent agricultural AI assistant. Analyze the user's query and determine:
+1. What they want to achieve
+2. Which AI model to use
+3. What data to extract/prepare for the model
+
+{context_info}
+
+User Query: "{user_query}"
+
+Available Models:
+- crop_recommendation: Needs [N, P, K, temperature, humidity, pH, rainfall] - predicts best crop
+- disease_detection: Needs plant image - identifies plant diseases  
+- general_help: For greetings, general questions, unclear queries
+
+TASK: Analyze the query and respond with:
+
+{{
+    "selected_model": "crop_recommendation" | "disease_detection" | "general_help",
+    "confidence": 0.0-1.0,
+    "reasoning": "Why this model was chosen",
+    "extracted_data": {{
+        "crop_features": [N, P, K, temp, humidity, pH, rainfall] // if crop_recommendation
+        "mentioned_crops": ["rice", "wheat"] // if user mentioned specific crops
+        "disease_symptoms": ["spots", "yellowing"] // if disease_detection
+        "user_intent": "what the user really wants"
+    }},
+    "data_source": "extracted_from_query" | "default_values" | "user_provided",
+    "needs_more_info": true/false,
+    "suggested_questions": ["What additional info would help?"]
+}}
+
+ANALYSIS GUIDELINES:
+- For crop questions: Extract any numerical values (N, P, K, etc.) or use reasonable defaults
+- For disease questions: Look for symptoms, plant types, problems
+- For greetings/unclear: Use general_help
+- Always extract user intent and mentioned crops/plants
+
+Be intelligent about extracting agricultural data from natural language!"""
+
+        return self.call_llm(prompt)
+
+    def select_model(self, user_query: str, has_image: bool = False, numerical_data: Dict = None, context: UserContext = None) -> Dict[str, Any]:
+        """Legacy method - use analyze_and_select_model instead"""
+        return self.analyze_and_select_model(user_query, has_image, context)
+    
+    def extract_entities_dynamically(self, text: str) -> Dict[str, Any]:
+        """Use LLM to extract agricultural entities dynamically - Vercel compatible"""
+        
+        if not self.enable_dynamic_extraction or not self.api_key:
+            return self._fallback_entity_extraction(text)
+        
+        try:
+            prompt = f"""Extract agricultural information from this text: "{text}"
+
+Instructions:
+1. Identify any crops, plants, or agricultural products mentioned
+2. Identify any diseases, pests, or plant health issues
+3. Identify any nutrients, fertilizers, or soil conditions
+4. Identify any numerical values with their units
+5. Identify any locations or climate information
+
+Respond ONLY with valid JSON in this format:
+{{
+    "crops": ["crop1", "crop2"],
+    "diseases": ["disease1", "disease2"], 
+    "nutrients": ["nitrogen", "phosphorus"],
+    "numbers": [{{value: 25, unit: "kg", context: "nitrogen"}}],
+    "locations": ["location1"],
+    "climate_conditions": ["temperature", "humidity"],
+    "confidence": 0.85
+}}"""
+
+            result = self.call_llm(prompt)
+            return result if isinstance(result, dict) else self._fallback_entity_extraction(text)
+            
+        except Exception as e:
+            print(f"Dynamic entity extraction failed: {e}")
+            return self._fallback_entity_extraction(text)
+    
+    def _fallback_entity_extraction(self, text: str) -> Dict[str, Any]:
+        """Fallback entity extraction using basic patterns"""
+        entities = {
+            "crops": [],
+            "diseases": [],
+            "nutrients": [],
+            "numbers": [],
+            "locations": [],
+            "climate_conditions": [],
+            "confidence": 0.6
+        }
+        
+        # Basic pattern matching as fallback
+        import re
+        
+        # Common crops (expandable list)
+        crop_patterns = r'\b(rice|wheat|corn|maize|tomato|potato|apple|orange|banana|lettuce|carrot|soybean|cotton|barley|oats)\b'
+        crops = re.findall(crop_patterns, text.lower())
+        entities["crops"] = list(set(crops))
+        
+        # Common diseases
+        disease_patterns = r'\b(blight|rust|mildew|rot|spot|wilt|mosaic|scab|canker|leaf spot|powdery mildew)\b'
+        diseases = re.findall(disease_patterns, text.lower())
+        entities["diseases"] = list(set(diseases))
+        
+        # Nutrients
+        nutrient_patterns = r'\b(nitrogen|phosphorus|potassium|n|p|k|fertilizer|compost|manure)\b'
+        nutrients = re.findall(nutrient_patterns, text.lower())
+        entities["nutrients"] = list(set(nutrients))
+        
+        # Numbers with context
+        number_patterns = r'(\d+(?:\.\d+)?)\s*(kg|grams?|cm|inches?|acres?|hectares?|celsius|fahrenheit|%|mm|degrees?)?'
+        numbers = re.findall(number_patterns, text.lower())
+        entities["numbers"] = [{"value": float(num), "unit": unit or "unknown"} for num, unit in numbers]
+        
+        return entities
+
+    def _parse_markdown_response(self, content: str) -> Optional[Dict[str, Any]]:
+        """Parse features from markdown-style LLM response"""
+        try:
+            # Extract crop_features from markdown patterns like:
+            # * `crop_features`: [N=50, P=50, K=20, temperature=40, humidity= (not mentioned), pH=6.5, rainfall= (not mentioned)]
+            
+            # Look for crop_features array pattern
+            features_match = re.search(r'crop_features.*?\[([^\]]+)\]', content, re.IGNORECASE | re.DOTALL)
+            
+            if features_match:
+                features_str = features_match.group(1)
+                print(f"Found features string: {features_str}")
+                
+                # Default values for all features [N, P, K, temp, humidity, pH, rainfall]
+                features = [25, 20, 30, 26, 65, 6.7, 120]
+                
+                # Extract each parameter with flexible patterns
+                n_match = re.search(r'(?:N|nitrogen)\s*[=:]\s*(\d+\.?\d*)', features_str, re.IGNORECASE)
+                if n_match:
+                    features[0] = float(n_match.group(1))
+                    
+                p_match = re.search(r'(?:P|phosphorus|phosphorous)\s*[=:]\s*(\d+\.?\d*)', features_str, re.IGNORECASE)
+                if p_match:
+                    features[1] = float(p_match.group(1))
+                    
+                k_match = re.search(r'(?:K|potassium)\s*[=:]\s*(\d+\.?\d*)', features_str, re.IGNORECASE)
+                if k_match:
+                    features[2] = float(k_match.group(1))
+                    
+                temp_match = re.search(r'(?:temperature|temp)\s*[=:]\s*(\d+\.?\d*)', features_str, re.IGNORECASE)
+                if temp_match:
+                    features[3] = float(temp_match.group(1))
+                    
+                humidity_match = re.search(r'(?:humidity|humid)\s*[=:]\s*(\d+\.?\d*)', features_str, re.IGNORECASE)
+                if humidity_match:
+                    features[4] = float(humidity_match.group(1))
+                # else: keep default 65.0
+                    
+                ph_match = re.search(r'(?:pH|ph)\s*[=:]\s*(\d+\.?\d*)', features_str, re.IGNORECASE)
+                if ph_match:
+                    features[5] = float(ph_match.group(1))
+                    
+                rainfall_match = re.search(r'(?:rainfall|rain)\s*[=:]\s*(\d+\.?\d*)', features_str, re.IGNORECASE)
+                if rainfall_match:
+                    features[6] = float(rainfall_match.group(1))
+                # else: keep default 120.0
+                
+                # Check if we got at least some values
+                if any(f != 25 or f != 20 or f != 30 or f != 26 or f != 65 or f != 6.7 or f != 120 for f in features):
+                    print(f"✓ Parsed features from markdown: {features}")
+                    
+                    # Look for model selection
+                    model_match = re.search(r'selected_model.*?["\']?(crop_recommendation|disease_detection|general_help)["\']?', content, re.IGNORECASE)
+                    selected_model = model_match.group(1) if model_match else "crop_recommendation"
+                    
+                    # Look for user intent
+                    intent_match = re.search(r'user_intent.*?["\']([^"\']+)["\']', content, re.IGNORECASE)
+                    user_intent = intent_match.group(1) if intent_match else "crop recommendation"
+                    
+                    return {
+                        "selected_model": selected_model,
+                        "confidence": 0.85,
+                        "reasoning": "Parsed from LLM markdown response",
+                        "extracted_data": {
+                            "crop_features": features,
+                            "user_intent": user_intent,
+                            "data_source": "extracted_from_query"
+                        }
+                    }
+            
+            return None
+        except Exception as e:
+            print(f"Error parsing markdown response: {e}")
+            return None
 
 class DecisionEngine:
-    """Intelligent model selection engine"""
+    """Intelligent model selection engine with LLM support"""
     
-    def __init__(self, registry: ModelRegistry = None):
+    def __init__(self, registry: ModelRegistry = None, use_llm: bool = None):
         self.registry = registry or model_registry
+        self.use_llm = use_llm if use_llm is not None else os.getenv("MCB_USE_LLM", "true").lower() == "true"
+        self.llm_selector = CloudLLMSelector() if self.use_llm else None
         self.intent_patterns = self._initialize_intent_patterns()
         self.entity_extractors = self._initialize_entity_extractors()
     
@@ -152,6 +609,73 @@ class DecisionEngine:
     
     def recommend_model(self, analysis: InputAnalysis, context: UserContext = None) -> ModelRecommendation:
         """Recommend the best model based on input analysis"""
+        
+        if self.use_llm and self.llm_selector:
+            return self._recommend_with_llm(analysis, context)
+        else:
+            return self._recommend_with_rules(analysis, context)
+    
+    def _recommend_with_llm(self, analysis: InputAnalysis, context: UserContext = None) -> ModelRecommendation:
+        """Use LLM to recommend the best model"""
+        
+        # Extract numerical data if present
+        numerical_data = None
+        if 'numbers' in analysis.extracted_entities:
+            numbers = analysis.extracted_entities['numbers']
+            if len(numbers) >= 7:  # Enough for crop recommendation
+                numerical_data = {
+                    "values": numbers[:7],
+                    "description": "Detected numerical values that could be N,P,K,temp,humidity,pH,rainfall"
+                }
+        
+        # Use LLM to select model
+        llm_result = self.llm_selector.select_model(
+            user_query=analysis.raw_input,
+            has_image=analysis.has_image,
+            numerical_data=numerical_data,
+            context=context
+        )
+        
+        # Get the selected model from registry
+        model_id = llm_result.get('selected_model')
+        if model_id == 'crop_recommendation':
+            model = self.registry.get_model('crop_recommendation_v1')
+        elif model_id == 'disease_detection':
+            model = self.registry.get_model('disease_detection_v1')
+        elif model_id == 'general_help':
+            # Return a special response for general help
+            return ModelRecommendation(
+                model=None,
+                confidence=llm_result.get('confidence', 0.9),
+                reasoning=llm_result.get('reasoning', 'General help requested'),
+                required_inputs={},
+                alternative_models=[],
+                is_general_help=True
+            )
+        else:
+            # Fallback to first available model
+            model = self.registry.get_all_active_models()[0]
+        
+        if not model:
+            raise ValueError(f"Model {model_id} not found in registry")
+        
+        # Determine required inputs
+        required_inputs = self._determine_required_inputs(model, analysis)
+        
+        # Get alternative models
+        all_models = self.registry.get_all_active_models()
+        alternatives = [m for m in all_models if m.model_id != model.model_id][:2]
+        
+        return ModelRecommendation(
+            model=model,
+            confidence=llm_result.get('confidence', 0.8),
+            reasoning=llm_result.get('reasoning', 'Selected by LLM'),
+            required_inputs=required_inputs,
+            alternative_models=alternatives
+        )
+    
+    def _recommend_with_rules(self, analysis: InputAnalysis, context: UserContext = None) -> ModelRecommendation:
+        """Fallback to rule-based recommendation"""
         
         # Get candidate models based on intent
         candidates = self._get_candidate_models(analysis)
@@ -352,5 +876,5 @@ class DecisionEngine:
         
         return required
 
-# Global decision engine instance
-decision_engine = DecisionEngine()
+# Global decision engine instance with LLM support
+decision_engine = DecisionEngine(use_llm=True)

@@ -1,7 +1,7 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from typing import List
-from .crop_recommendation_inference import predict_crop
+from crop_recommendation_inference import predict_crop
 
 app = FastAPI()
 

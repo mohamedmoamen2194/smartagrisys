@@ -2,20 +2,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { CropRecommendationChatMCB } from "@/components/crop-recommendation-chat-mcb"
 import { Zap, Bot, Brain } from "lucide-react"
+import { FarmerPageHeader } from "@/components/farmer/page-header"
 
 export default function ChatbotPage() {
   return (
-    <div className="container mx-auto py-4 sm:py-6 px-4 sm:px-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0">
-        <div className="flex items-center gap-2 sm:gap-3">
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">AI Assistant</h1>
-          <Badge variant="secondary" className="flex items-center gap-1 text-xs">
-            <Zap className="h-3 w-3" />
-            <span className="hidden sm:inline">MCB Powered</span>
-            <span className="sm:hidden">MCB</span>
-          </Badge>
-        </div>
-      </div>
+    <div className="w-full px-4 sm:px-6 lg:px-8 py-6">
+      <FarmerPageHeader title="AI Assistant" actions={<Badge variant="secondary" className="flex items-center gap-1 text-xs"><Zap className="h-3 w-3" /><span className="hidden sm:inline">MCB Powered</span><span className="sm:hidden">MCB</span></Badge>} />
 
       <div className="grid gap-3 sm:gap-4 mt-4 sm:mt-6">
         {/* Info Cards */}

@@ -121,54 +121,14 @@ export function useMCBChat() {
       }
 
       const mcbResult = await mcbResponse.json()
-
       // Set conversation ID
       if (!conversationId && mcbResult.session_id) {
         setConversationId(mcbResult.session_id)
       }
 
-      // Always try to execute for image analysis
-      if (mcbResult.selected_model.type === 'disease_detection') {
-        try {
-          // Convert image to base64 for execution
-          const imageBase64 = await fileToBase64(imageFile)
-          
-          const executionResponse = await fetch('/api/mcb', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              action: 'execute',
-              model_id: mcbResult.selected_model.model_id,
-              session_id: mcbResult.session_id,
-              inputs: { image: imageBase64 }
-            }),
-          })
-
-          if (executionResponse.ok) {
-            const executionResult = await executionResponse.json()
-            const formattedResponse = formatImageAnalysisResult(executionResult, mcbResult.selected_model)
-            
-            return {
-              content: formattedResponse,
-              analysis: {
-                selected_model: mcbResult.selected_model,
-                confidence: mcbResult.confidence,
-                reasoning: mcbResult.reasoning
-              }
-            }
-          } else {
-            const errorText = await executionResponse.text()
-            console.error('Model execution failed:', errorText)
-          }
-        } catch (executionError) {
-          console.error('Error executing model:', executionError)
-        }
-      }
-
-      // Return analysis response
-      const analysisResponse = `🤖 **Image Analysis**\n\n${mcbResult.reasoning}\n\nI've selected the ${mcbResult.selected_model.name} for your image. Let me analyze it...`
+      // For image analysis, the first request already executed the model
+      // Just return the formatted response directly
+      const analysisResponse = mcbResult.response || `🤖 **Image Analysis**\n\n${mcbResult.reasoning}\n\nI've selected the ${mcbResult.selected_model.name} for your image.`
 
       return {
         content: analysisResponse,

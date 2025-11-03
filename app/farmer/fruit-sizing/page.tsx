@@ -5,13 +5,12 @@ import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
 import { Ruler, ImageIcon, Check } from "lucide-react"
 import { ImageUploader } from "@/components/image-uploader"
+import { FarmerPageHeader } from "@/components/farmer/page-header"
 
 export default function FruitSizingPage() {
   return (
-    <div className="max-w-2xl mx-auto py-6 px-4 w-full space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <h1 className="text-3xl font-bold tracking-tight text-center sm:text-left">Fruit Sizing</h1>
-      </div>
+    <div className="w-full px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+      <FarmerPageHeader title="Fruit Sizing" />
 
       <Tabs defaultValue="upload" className="mt-6">
         <TabsList className="grid w-full grid-cols-2">

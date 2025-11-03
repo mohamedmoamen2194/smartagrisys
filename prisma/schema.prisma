@@ -57,6 +57,7 @@ model Farmer {
   cropReports CropReport[]
   sensors     Sensor[]
   diseaseDetections DiseaseDetection[]
+  farms       Farm[]
 
   @@map("farmers")
 }
@@ -311,6 +312,7 @@ model Sensor {
 
   // Relations
   readings SensorReading[]
+  partAssignments PartSensor[]
 
   @@map("sensors")
 }
@@ -427,4 +429,106 @@ enum NotificationType {
   DISEASE_ALERT
   SYSTEM_ALERT
   GENERAL
+}
+
+// Farm management & visualization
+model Farm {
+  id        String   @id @default(cuid())
+  farmerId  String
+  name      String
+  location  String?        // free text or geo JSON string stored separately
+  areaHa    Decimal? @db.Decimal(10,2)
+  metadata  Json?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  farmer Farmer @relation(fields: [farmerId], references: [id], onDelete: Cascade)
+  parts  FarmPart[]
+
+  @@map("farms")
+}
+
+enum FarmPartType {
+  FIELD
+  GREENHOUSE
+  ORCHARD
+  PEN
+  OTHER
+}
+
+model FarmPart {
+  id        String       @id @default(cuid())
+  farmId    String
+  name      String
+  type      FarmPartType @default(FIELD)
+  geometry  Json                   // grid/shape definition for visualization
+  soilType  String?
+  irrigationType String?
+  metadata  Json?
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  farm   Farm   @relation(fields: [farmId], references: [id], onDelete: Cascade)
+  sensors PartSensor[]
+  predictions Prediction[]
+  insights    Insight[]
+
+  @@map("farm_parts")
+}
+
+// Assignment of existing Sensor to a FarmPart
+model PartSensor {
+  id         String   @id @default(cuid())
+  farmPartId String
+  sensorId   String
+  position   Json?             // coordinates within part for UI
+  installedAt DateTime @default(now())
+
+  farmPart FarmPart @relation(fields: [farmPartId], references: [id], onDelete: Cascade)
+  sensor   Sensor   @relation(fields: [sensorId], references: [id], onDelete: Cascade)
+
+  @@unique([farmPartId, sensorId])
+  @@map("part_sensors")
+}
+
+model Prediction {
+  id            String   @id @default(cuid())
+  farmPartId    String
+  modelKey      String
+  predictedAt   DateTime @default(now())
+  horizonMinutes Int?
+  payload       Json
+
+  farmPart FarmPart @relation(fields: [farmPartId], references: [id], onDelete: Cascade)
+
+  @@index([farmPartId, predictedAt])
+  @@map("predictions")
+}
+
+enum InsightSeverity {
+  INFO
+  WARN
+  CRITICAL
+}
+
+enum InsightSource {
+  AI
+  RULE
+}
+
+model Insight {
+  id          String          @id @default(cuid())
+  farmPartId  String
+  generatedAt DateTime        @default(now())
+  severity    InsightSeverity @default(INFO)
+  title       String
+  summary     String?
+  details     Json?
+  source      InsightSource   @default(AI)
+  tags        String[]
+
+  farmPart FarmPart @relation(fields: [farmPartId], references: [id], onDelete: Cascade)
+
+  @@index([farmPartId, generatedAt])
+  @@map("insights")
 }

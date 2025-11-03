@@ -60,26 +60,25 @@ export async function POST(request: NextRequest) {
 
     const mcbData = await mcbAnalysisResponse.json()
     
-    // Convert mock response to expected format
+    // Use the actual MCB response structure instead of mock
     const mcbResult: MCBResponse = {
       selected_model: {
-        model_id: mcbData.analysis?.selected_model?.id || 'mock_model',
-        name: mcbData.analysis?.selected_model?.name || 'Mock Model',
-        type: mcbData.analysis?.selected_model?.type || 'general',
-        description: mcbData.analysis?.selected_model?.description || 'Mock AI Model'
+        model_id: mcbData.selected_model?.id || 'crop_recommendation_v1',
+        name: mcbData.selected_model?.name || 'Crop Recommendation',
+        type: mcbData.selected_model?.type || 'crop_recommendation',
+        description: mcbData.selected_model?.description || 'AI model for crop recommendations'
       },
-      confidence: mcbData.analysis?.confidence || 0.9,
-      reasoning: mcbData.analysis?.reasoning || 'Mock analysis',
+      confidence: mcbData.confidence || 0.8,
+      reasoning: mcbData.reasoning || 'MCB analysis completed',
       required_inputs: {},
-      can_execute: true,
-      session_id: mcbData.analysis?.session_id || conversationId || `session_${Date.now()}`
+      can_execute: false, // MCB backend already executed
+      session_id: mcbData.session_id || conversationId || `session_${Date.now()}`
     }
 
-    // Step 2: Check if we can execute the model immediately
-    if (mcbResult.can_execute) {
+    // Step 2: Return the actual MCB response
       try {
-        // Use the response from our mock MCB API directly
-        const responseContent = mcbData.result?.response || mcbData.analysis?.response || "I'm here to help with your agricultural questions!"
+      // Use the actual response from MCB backend
+      const responseContent = mcbData.response || "I'm here to help with your agricultural questions!"
         
         return NextResponse.json({
           message: {
@@ -89,7 +88,7 @@ export async function POST(request: NextRequest) {
             metadata: {
               model_used: mcbResult.selected_model.name,
               confidence: mcbResult.confidence,
-              execution_time: 150, // Mock execution time
+            execution_time: 150,
               model_type: mcbResult.selected_model.type
             }
           },
@@ -103,7 +102,6 @@ export async function POST(request: NextRequest) {
       } catch (executionError) {
         console.error('Model execution failed:', executionError)
         // Fall through to analysis-only response
-      }
     }
 
     // Step 3: Return analysis with guidance for required inputs

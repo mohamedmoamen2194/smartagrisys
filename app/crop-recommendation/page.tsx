@@ -168,11 +168,49 @@ export default function CropRecommendationPage() {
                 </div>
                 {manualError && <div className="text-red-500 text-sm">{manualError}</div>}
                 {manualResult && (
-                  <div className="p-4 bg-green-50 rounded-lg dark:bg-green-900/20 text-center">
-                    <div className="text-2xl font-bold text-green-600 dark:text-green-400 mb-2">
-                      Recommended Crop: {manualResult.recommendedCrop || manualResult.crop}
+                  <div className="space-y-4">
+                    <div className="p-4 bg-green-50 rounded-lg dark:bg-green-900/20 text-center">
+                      <div className="text-2xl font-bold text-green-600 dark:text-green-400 mb-2">
+                        Recommended Crop: {manualResult.recommendedCrop || manualResult.crop}
+                      </div>
+                      <div className="text-green-700 dark:text-green-300 mb-2">
+                        Confidence: {typeof manualResult.confidence === 'number' ? (manualResult.confidence * 100).toFixed(1) + '%' : manualResult.confidence}
+                      </div>
+                      {manualResult.source && (
+                        <div className="text-xs text-muted-foreground">
+                          Source: {manualResult.source === 'mcb_backend' ? 'AI Model' : 'Fallback'}
+                        </div>
+                      )}
                     </div>
-                    {manualResult.reasoning && <div className="text-green-700 dark:text-green-300 mb-2">{manualResult.reasoning}</div>}
+                    
+                    {manualResult.reasoning && (
+                      <div className="p-4 bg-blue-50 rounded-lg dark:bg-blue-900/20">
+                        <h4 className="font-semibold text-blue-800 dark:text-blue-200 mb-2">Analysis Details</h4>
+                        <p className="text-sm text-blue-700 dark:text-blue-300">{manualResult.reasoning}</p>
+                      </div>
+                    )}
+                    
+                    {manualResult.alternatives && manualResult.alternatives.length > 0 && (
+                      <div className="p-4 bg-yellow-50 rounded-lg dark:bg-yellow-900/20">
+                        <h4 className="font-semibold text-yellow-800 dark:text-yellow-200 mb-2">Alternative Crops</h4>
+                        <div className="text-sm text-yellow-700 dark:text-yellow-300">
+                          {manualResult.alternatives.join(', ')}
+                        </div>
+                      </div>
+                    )}
+                    
+                    {manualResult.careInstructions && (
+                      <div className="p-4 bg-purple-50 rounded-lg dark:bg-purple-900/20">
+                        <h4 className="font-semibold text-purple-800 dark:text-purple-200 mb-2">Care Instructions</h4>
+                        <div className="text-sm text-purple-700 dark:text-purple-300 space-y-2">
+                          {Object.entries(manualResult.careInstructions).map(([key, value]) => (
+                            <div key={key}>
+                              <strong>{key.charAt(0).toUpperCase() + key.slice(1)}:</strong> {value}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
               </form>
