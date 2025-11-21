@@ -91,4 +91,43 @@ body {
   body {
     @apply bg-background text-foreground;
   }
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+@layer utilities {
+  .animate-fade-in {
+    animation: fadeIn 0.6s ease-out forwards;
+    will-change: opacity, transform;
+  }
+  
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translate3d(0, 20px, 0);
+    }
+    to {
+      opacity: 1;
+      transform: translate3d(0, 0, 0);
+    }
+  }
+  
+  .bg-grid-pattern {
+    background-image: 
+      linear-gradient(to right, rgba(0,0,0,0.05) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(0,0,0,0.05) 1px, transparent 1px);
+    background-size: 50px 50px;
+  }
+  
+  /* Optimize animations for better performance */
+  section[class*="py-20"] {
+    contain: layout style paint;
+  }
+  
+  /* Reduce repaints during scroll */
+  .hover\:shadow-xl,
+  .hover\:-translate-y-2 {
+    will-change: transform, box-shadow;
+  }
 }

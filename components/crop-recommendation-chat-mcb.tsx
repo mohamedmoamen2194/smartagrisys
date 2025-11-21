@@ -168,7 +168,7 @@ export function CropRecommendationChatMCB({
           <h3 className="font-semibold text-sm sm:text-base truncate">AI Agricultural Assistant</h3>
           <Badge variant="secondary" className="text-xs hidden sm:inline-flex">
             <Zap className="h-3 w-3 mr-1" />
-            MCB Powered
+            AI Powered
           </Badge>
           <Badge variant="secondary" className="text-xs sm:hidden">
             <Zap className="h-3 w-3" />
@@ -301,7 +301,7 @@ export function CropRecommendationChatMCB({
           <div className="flex items-center gap-2 p-2 bg-green-50 dark:bg-green-900/20 rounded-lg">
             <Zap className="h-4 w-4 text-green-500 flex-shrink-0" />
             <span className="text-xs sm:text-sm text-green-700 dark:text-green-300 truncate">
-              <span className="hidden sm:inline">MCB selected: </span>
+              <span className="hidden sm:inline">AI selected: </span>
               {lastAnalysis.selected_model.name} ({(lastAnalysis.confidence * 100).toFixed(0)}%)
             </span>
           </div>
@@ -360,8 +360,8 @@ export function CropRecommendationChatMCB({
       
       <div className="border-t p-2 sm:p-3 bg-muted/30">
         <p className="text-xs text-muted-foreground text-center">
-          <span className="hidden sm:inline">🤖 Powered by MCB - I automatically select the best AI model for your agricultural questions!</span>
-          <span className="sm:hidden">🤖 MCB Powered AI Assistant</span>
+          <span className="hidden sm:inline">🤖 I automatically select the best AI model for your agricultural questions!</span>
+          <span className="sm:hidden">Powered AI Assistant</span>
         </p>
       </div>
     </div>

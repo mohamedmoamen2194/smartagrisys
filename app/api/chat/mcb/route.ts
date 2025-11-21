@@ -55,7 +55,7 @@ export async function POST(request: NextRequest) {
 
     if (!mcbAnalysisResponse.ok) {
       const errorText = await mcbAnalysisResponse.text()
-      throw new Error(`MCB analysis failed: ${errorText}`)
+      throw new Error(`analysis failed: ${errorText}`)
     }
 
     const mcbData = await mcbAnalysisResponse.json()
@@ -69,7 +69,7 @@ export async function POST(request: NextRequest) {
         description: mcbData.selected_model?.description || 'AI model for crop recommendations'
       },
       confidence: mcbData.confidence || 0.8,
-      reasoning: mcbData.reasoning || 'MCB analysis completed',
+      reasoning: mcbData.reasoning || 'analysis completed',
       required_inputs: {},
       can_execute: false, // MCB backend already executed
       session_id: mcbData.session_id || conversationId || `session_${Date.now()}`
@@ -128,7 +128,7 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('MCB Chat API error:', error)
+    console.error('Chat API error:', error)
     return NextResponse.json(
       { error: `Failed to process message: ${error instanceof Error ? error.message : 'Unknown error'}` },
       { status: 500 }
@@ -275,7 +275,7 @@ export async function GET(request: NextRequest) {
     // For now, return empty history - you can implement conversation storage later
     return NextResponse.json({ history: [] })
   } catch (error) {
-    console.error('MCB Chat history error:', error)
+    console.error('Chat history error:', error)
     return NextResponse.json(
       { error: 'Failed to get conversation history' },
       { status: 500 }
@@ -295,7 +295,7 @@ export async function DELETE(request: NextRequest) {
     // For now, just return success - you can implement conversation clearing later
     return NextResponse.json({ success: true })
   } catch (error) {
-    console.error('MCB Clear conversation error:', error)
+    console.error('Clear conversation error:', error)
     return NextResponse.json(
       { error: 'Failed to clear conversation' },
       { status: 500 }

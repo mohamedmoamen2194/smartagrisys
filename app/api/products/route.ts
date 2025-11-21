@@ -87,6 +87,11 @@ export async function GET() {
     const transformedProducts = products.map((product) => ({
       ...product,
       price: Number(product.price),
+      images: product.images.map((img) => ({
+        id: img.id,
+        imageUrl: img.imageUrl,
+        isPrimary: img.isPrimary,
+      })),
       inventoryItems: product.inventoryItems.map((inv) => ({
         ...inv,
         quantity: Number(inv.quantity),
@@ -98,6 +103,14 @@ export async function GET() {
         name: `${product.farmer.user.firstName} ${product.farmer.user.lastName}`,
       }
     }));
+
+    // Debug: Log products with images
+    console.log('Products fetched:', transformedProducts.length);
+    transformedProducts.forEach((p) => {
+      if (p.images && p.images.length > 0) {
+        console.log(`Product "${p.name}" has ${p.images.length} image(s):`, p.images);
+      }
+    });
 
     return NextResponse.json(transformedProducts);
   } catch (error) {

@@ -7,7 +7,7 @@ import { FarmerPageHeader } from "@/components/farmer/page-header"
 export default function ChatbotPage() {
   return (
     <div className="w-full px-4 sm:px-6 lg:px-8 py-6">
-      <FarmerPageHeader title="AI Assistant" actions={<Badge variant="secondary" className="flex items-center gap-1 text-xs"><Zap className="h-3 w-3" /><span className="hidden sm:inline">MCB Powered</span><span className="sm:hidden">MCB</span></Badge>} />
+      <FarmerPageHeader title="AI Assistant" actions={<Badge variant="secondary" className="flex items-center gap-1 text-xs"><Zap className="h-3 w-3" /><span className="hidden sm:inline">AI Powered</span><span className="sm:hidden"></span></Badge>} />
 
       <div className="grid gap-3 sm:gap-4 mt-4 sm:mt-6">
         {/* Info Cards */}
@@ -22,7 +22,7 @@ export default function ChatbotPage() {
             </CardHeader>
             <CardContent className="p-0">
               <p className="text-xs text-muted-foreground">
-                <span className="hidden sm:inline">MCB automatically chooses the best AI model for your question</span>
+                <span className="hidden sm:inline">AI model for your specific question</span>
                 <span className="sm:hidden">Auto-selects best AI model</span>
               </p>
             </CardContent>
@@ -67,8 +67,8 @@ export default function ChatbotPage() {
             <CardTitle className="flex flex-col sm:flex-row sm:items-center gap-2 text-base sm:text-lg">
               <span>Smart Agriculture Assistant</span>
               <Badge variant="outline" className="text-xs w-fit">
-                <span className="hidden sm:inline">Model Control Bridge</span>
-                <span className="sm:hidden">MCB</span>
+                <span className="hidden sm:inline"></span>
+                <span className="sm:hidden"></span>
               </Badge>
             </CardTitle>
             <CardDescription className="text-xs sm:text-sm">

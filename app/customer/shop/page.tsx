@@ -88,17 +88,22 @@ export default function CustomerShopPage() {
       <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {products.map((product) => {
           const inventory = product.inventoryItems[0]
-          const primaryImage = product.images.find(img => img.isPrimary) || product.images[0]
+          const primaryImage = product.images?.find(img => img.isPrimary) || product.images?.[0]
           const cartItem = cartItems.find(item => item.id === product.id)
           const availableStock = inventory ? inventory.quantity - inventory.reservedQty - (cartItem?.quantity || 0) : 0
+          const imageSrc = primaryImage?.imageUrl || "/placeholder.svg"
           
           return (
             <Card key={product.id} className="overflow-hidden">
               <div className="aspect-square relative bg-muted">
                 <img
-                  src={primaryImage?.imageUrl || "/placeholder.svg"}
+                  src={imageSrc}
                   alt={product.name}
                   className="object-cover w-full h-full"
+                  onError={(e) => {
+                    console.error(`Failed to load image for ${product.name}:`, imageSrc)
+                    e.currentTarget.src = "/placeholder.svg"
+                  }}
                 />
                 {availableStock <= 0 && (
                   <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
