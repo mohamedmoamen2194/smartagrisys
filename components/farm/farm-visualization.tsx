@@ -31,93 +31,536 @@ type GridPart = {
   cropName?: string
 }
 
-interface FarmGridProps {
-  rows: number
-  cols: number
-  parts: GridPart[]
-  onPartClick?: (p: GridPart) => void
+/**
+ * 3D farm layout types derived from the external Farm Dashboard Component.
+ * These are kept local to this file so we can swap the visualization
+ * without touching the existing backend or editor logic.
+ */
+
+type PlotStatus = "healthy" | "warning" | "critical"
+
+type PlotType = "crop" | "building" | "animal" | "empty"
+
+type Plot3D = {
+  id: string
+  x: number
+  y: number
+  width: number
+  height: number
+  type: PlotType
+  content: string
+  name: string
+  status?: PlotStatus
+  growthStage?: number
+  cropName?: string
 }
 
-const FarmGrid = ({ rows, cols, parts, onPartClick }: FarmGridProps) => {
-  const grid = useMemo(() => {
-    const newGrid: (string | null)[][] = Array.from({ length: rows }, () => Array(cols).fill(null))
-    
-    parts.forEach((p) => {
-      for (let r = p.startRow; r < Math.min(p.startRow + p.rows, rows); r++) {
-        for (let c = p.startCol; c < Math.min(p.startCol + p.cols, cols); c++) {
-          if (r >= 0 && r < rows && c >= 0 && c < cols) newGrid[r][c] = p.id
-        }
-      }
-    })
-    
-    return newGrid
-  }, [rows, cols, parts])
+type Farm3DLayoutProps = {
+  plots: Plot3D[]
+  onSelectPlot?: (id: string) => void
+  rows: number
+  cols: number
+  onChangePlotRect?: (
+    id: string,
+    rect: { startRow: number; startCol: number; rows: number; cols: number },
+    options?: { commit?: boolean }
+  ) => void
+}
 
-  const cells = []
-  for (let r = 0; r < rows; r++) {
-    for (let c = 0; c < cols; c++) {
-      const partId = grid[r]?.[c]
-      const part = parts.find((p) => p.id === partId)
-      const isStart = part && part.startRow === r && part.startCol === c
-      
-      // Check borders - if adjacent cell has different part, add border (not at grid edges)
-      const topDifferent = r > 0 && grid[r - 1]?.[c] !== partId && partId !== null
-      const bottomDifferent = r < rows - 1 && grid[r + 1]?.[c] !== partId && partId !== null
-      const leftDifferent = c > 0 && grid[r]?.[c - 1] !== partId && partId !== null
-      const rightDifferent = c < cols - 1 && grid[r]?.[c + 1] !== partId && partId !== null
-      
-      cells.push(
-        <div
-          key={`${r}-${c}`}
-          onClick={() => part && onPartClick?.(part)}
-          className={cn(
-            "relative transition-all duration-200 w-full h-full",
-            part 
-              ? "cursor-pointer hover:scale-[1.02] hover:shadow-lg" 
-              : "bg-green-50/40 dark:bg-green-900/20 border border-green-200/30 dark:border-green-800/30"
-          )}
-          style={{
-            backgroundColor: part ? part.color : undefined, 
-            opacity: part ? 1 : 1,
-            gridRow: r + 1,
-            gridColumn: c + 1,
-            borderTop: topDifferent ? '3px solid rgba(255, 255, 255, 0.6)' : undefined,
-            borderBottom: bottomDifferent ? '3px solid rgba(255, 255, 255, 0.6)' : undefined,
-            borderLeft: leftDifferent ? '3px solid rgba(255, 255, 255, 0.6)' : undefined,
-            borderRight: rightDifferent ? '3px solid rgba(255, 255, 255, 0.6)' : undefined
-          }}
-          title={part ? `${part.name}${part.cropName ? ` • ${part.cropName}` : ""}` : undefined}
-        >
-          {part && isStart && (
-            <div className="absolute inset-0 flex flex-col items-center justify-center p-2">
-              <span className="text-white text-sm font-bold drop-shadow-lg text-center line-clamp-2">
-                {part.name}
-              </span>
-              {part.cropName && (
-                <span className="mt-1 text-xs text-white/95 bg-black/30 rounded-md px-2 py-1 line-clamp-1 backdrop-blur-sm">
-                  {part.cropName}
-                </span>
-              )}
-            </div>
-          )}
-        </div>
-      )
+const Farm3DLayout = ({
+  plots,
+  onSelectPlot,
+  rows,
+  cols,
+  onChangePlotRect,
+}: Farm3DLayoutProps) => {
+  // Fixed cell size - parts maintain this size regardless of grid dimensions
+  const plotSize = 120
+  const spacing = 130
+  
+  // Calculate container size based on grid dimensions to ensure parts maintain fixed size
+  // Add extra padding so parts don't get clipped
+  const containerWidth = Math.max(800, cols * spacing + spacing)
+  const containerHeight = Math.max(500, rows * spacing + spacing)
+
+  return (
+    <div className="relative overflow-visible" style={{ minHeight: "420px", maxHeight: "600px" }}>
+      {/* isometric farm grid container (no background panel, parts appear to float) */}
+      <div
+        className="relative mx-auto"
+        style={{
+          width: `${containerWidth}px`,
+          maxWidth: "100%",
+          height: `${containerHeight}px`,
+          transform: "rotateX(60deg) rotateZ(45deg) scale(0.8)",
+          transformStyle: "preserve-3d",
+        }}
+      >
+        {plots.map((plot) => (
+          <FarmPlot3D
+            key={plot.id}
+            plot={plot}
+            maxRows={rows}
+            maxCols={cols}
+            onClick={() => onSelectPlot?.(plot.id)}
+            onChangeRect={(rect, options) =>
+              onChangePlotRect?.(
+                plot.id,
+                {
+                  startRow: rect.startRow,
+                  startCol: rect.startCol,
+                  rows: rect.rows,
+                  cols: rect.cols,
+                },
+                options
+              )
+            }
+          />
+        ))}
+      </div>
+    </div>
+  )
+}
+
+type FarmPlot3DProps = {
+  plot: Plot3D
+  onClick?: () => void
+}
+
+const FarmPlot3D = ({
+  plot,
+  onClick,
+  maxRows,
+  maxCols,
+  onChangeRect,
+}: FarmPlot3DProps & {
+  maxRows: number
+  maxCols: number
+  onChangeRect?: (
+    rect: {
+      startRow: number
+      startCol: number
+      rows: number
+      cols: number
+    },
+    options?: { commit?: boolean }
+  ) => void
+}) => {
+  const [isHovered, setIsHovered] = useState(false)
+  const [dragging, setDragging] = useState(false)
+  const [resizing, setResizing] = useState(false)
+  const [dragStart, setDragStart] = useState<{ x: number; y: number } | null>(null)
+  const [originGrid, setOriginGrid] = useState<{
+    startRow: number
+    startCol: number
+    rows: number
+    cols: number
+  } | null>(null)
+  const lastRectRef = React.useRef<{
+    startRow: number
+    startCol: number
+    rows: number
+    cols: number
+  } | null>(null)
+
+  const plotSize = 120
+  const spacing = 130
+
+  // Calculate 3D isometric position
+  const left = plot.x * spacing
+  const top = plot.y * spacing
+  const width = plot.width * plotSize + (plot.width - 1) * 10
+  const height = plot.height * plotSize + (plot.height - 1) * 10
+
+  const getPlotColor = () => {
+    switch (plot.type) {
+      case "crop":
+        return "#8B4513" // Brown soil
+      case "building":
+        return "#94a3b8" // Gray foundation
+      case "animal":
+        return "#65a30d" // Green grass
+      case "empty":
+        return "#a16207" // Light brown
+      default:
+        return "#8B4513"
     }
   }
 
+  const getFenceColor = () => {
+    switch (plot.status) {
+      case "warning":
+        return "#fbbf24"
+      case "critical":
+        return "#ef4444"
+      default:
+        return "#d4a574"
+    }
+  }
+
+  const handleClick: React.MouseEventHandler<HTMLDivElement> = () => {
+    // clicking a tile no longer opens the edit card; interaction is purely drag/resize
+  }
+
+  const beginDrag: React.MouseEventHandler<HTMLDivElement> = (e) => {
+    // ignore if starting on resize handle
+    if ((e.target as HTMLElement).dataset.resizeHandle === "true") return
+    setDragging(true)
+    setDragStart({ x: e.clientX, y: e.clientY })
+    setOriginGrid({
+      startRow: plot.y,
+      startCol: plot.x,
+      rows: plot.height,
+      cols: plot.width,
+    })
+  }
+
+  const handlePointerMove = (clientX: number, clientY: number) => {
+    if ((!dragging && !resizing) || !dragStart || !originGrid) return
+
+    const deltaX = clientX - dragStart.x
+    const deltaY = clientY - dragStart.y
+
+    if (dragging) {
+      let newCol = originGrid.startCol + Math.round(deltaX / spacing)
+      let newRow = originGrid.startRow + Math.round(deltaY / spacing)
+
+      newCol = Math.max(0, Math.min(maxCols - originGrid.cols, newCol))
+      newRow = Math.max(0, Math.min(maxRows - originGrid.rows, newRow))
+
+      const rect = {
+        startRow: newRow,
+        startCol: newCol,
+        rows: originGrid.rows,
+        cols: originGrid.cols,
+      }
+      lastRectRef.current = rect
+      onChangeRect?.(rect, { commit: false })
+      return
+    }
+
+    if (resizing) {
+      const cellSize = plotSize + 10
+      let newCols =
+        originGrid.cols + Math.round(deltaX / cellSize)
+      let newRows =
+        originGrid.rows + Math.round(deltaY / cellSize)
+
+      newCols = Math.max(1, Math.min(maxCols - originGrid.startCol, newCols))
+      newRows = Math.max(1, Math.min(maxRows - originGrid.startRow, newRows))
+
+      const rect = {
+        startRow: originGrid.startRow,
+        startCol: originGrid.startCol,
+        rows: newRows,
+        cols: newCols,
+      }
+      lastRectRef.current = rect
+      onChangeRect?.(rect, { commit: false })
+    }
+  }
+
+  const endInteraction = () => {
+    if (lastRectRef.current) {
+      onChangeRect?.(lastRectRef.current, { commit: true })
+    }
+    setDragging(false)
+    setResizing(false)
+    setDragStart(null)
+    setOriginGrid(null)
+    lastRectRef.current = null
+  }
+
+  const beginResize: React.MouseEventHandler<HTMLDivElement> = (e) => {
+    e.stopPropagation()
+    setResizing(true)
+    setDragStart({ x: e.clientX, y: e.clientY })
+    setOriginGrid({
+      startRow: plot.y,
+      startCol: plot.x,
+      rows: plot.height,
+      cols: plot.width,
+    })
+  }
+
+  // Track dragging/resizing even if pointer leaves the tile by listening on window
+  React.useEffect(() => {
+    if (!dragging && !resizing) return
+
+    const handleMove = (e: MouseEvent) => {
+      handlePointerMove(e.clientX, e.clientY)
+    }
+    const handleUp = () => {
+      endInteraction()
+    }
+
+    window.addEventListener("mousemove", handleMove)
+    window.addEventListener("mouseup", handleUp)
+
+    return () => {
+      window.removeEventListener("mousemove", handleMove)
+      window.removeEventListener("mouseup", handleUp)
+    }
+  }, [dragging, resizing, dragStart, originGrid, maxRows, maxCols, onChangeRect])
+
   return (
-    <div className="p-4 w-full h-full flex items-center justify-center">
+    <div
+      className="absolute cursor-move transition-all duration-200"
+      style={{
+        left: `${left}px`,
+        top: `${top}px`,
+        width: `${width}px`,
+        height: `${height}px`,
+        transformStyle: "preserve-3d",
+        transform:
+          isHovered || dragging || resizing
+            ? "translateZ(20px)"
+            : "translateZ(0px)",
+      }}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+      onMouseDown={beginDrag}
+      onMouseMove={(e) => handlePointerMove(e.clientX, e.clientY)}
+      onClick={handleClick}
+    >
+      {/* 3D Plot Base */}
       <div
-        className="grid gap-2 bg-gradient-to-br from-green-50 via-green-100 to-emerald-50 dark:from-green-950 dark:via-green-900 dark:to-emerald-950 rounded-2xl shadow-xl p-2"
+        className="absolute inset-0 rounded-lg shadow-2xl"
         style={{
-          gridTemplateColumns: `repeat(${cols}, 1fr)`,
-          gridTemplateRows: `repeat(${rows}, 1fr)`,
-          width: '90%',
-          height: '70vh',
-          maxWidth: '1200px'
+          backgroundColor: getPlotColor(),
+          transform: "translateZ(-20px)",
+          border: "2px solid rgba(0,0,0,0.2)",
+        }}
+      />
+
+      {/* Side walls for depth */}
+      <div
+        className="absolute left-0 top-0"
+        style={{
+          width: "20px",
+          height: "100%",
+          background:
+            "linear-gradient(to right, rgba(0,0,0,0.3), rgba(0,0,0,0.1))",
+          transform: "rotateY(-90deg) translateZ(0px)",
+          transformOrigin: "left",
+        }}
+      />
+      <div
+        className="absolute right-0 top-0"
+        style={{
+          width: "20px",
+          height: "100%",
+          background:
+            "linear-gradient(to left, rgba(0,0,0,0.3), rgba(0,0,0,0.1))",
+          transform: "rotateY(90deg) translateZ(0px)",
+          transformOrigin: "right",
+        }}
+      />
+      <div
+        className="absolute left-0 bottom-0"
+        style={{
+          width: "100%",
+          height: "20px",
+          background:
+            "linear-gradient(to top, rgba(0,0,0,0.3), rgba(0,0,0,0.1))",
+          transform: "rotateX(90deg) translateZ(0px)",
+          transformOrigin: "bottom",
+        }}
+      />
+      <div
+        className="absolute left-0 top-0"
+        style={{
+          width: "100%",
+          height: "20px",
+          background:
+            "linear-gradient(to bottom, rgba(0,0,0,0.3), rgba(0,0,0,0.1))",
+          transform: "rotateX(-90deg) translateZ(0px)",
+          transformOrigin: "top",
+        }}
+      />
+
+      {/* Top surface */}
+      <div
+        className="absolute inset-0 rounded-lg flex items-center justify-center overflow-hidden"
+        style={{
+          // base soil tone for edges
+          backgroundColor: getPlotColor(),
+          border: `3px solid ${getFenceColor()}`,
+          boxShadow: "inset 0 2px 8px rgba(0,0,0,0.25)",
         }}
       >
-        {cells}
+        {/* 3D grass surface covering the tile */}
+        <Grass3D />
+
+        {/* resize handle (bottom-right) */}
+        <div
+          data-resize-handle="true"
+          className="absolute right-1 bottom-1 w-3 h-3 rounded-sm bg-white/90 shadow-md cursor-se-resize"
+          style={{ transform: "translateZ(30px)" }}
+          onMouseDown={beginResize}
+        />
+      </div>
+
+      {/* hover-only info: part name, crop, and basic insights (above tile, vertical/not tilted) */}
+      {isHovered && (
+        <div
+          className="absolute left-1/2 -top-2 px-3 py-2 rounded-md border text-xs shadow-lg max-w-[220px]"
+          style={{
+            // Counter-rotate to cancel parent's isometric rotation so the box appears vertical
+            transform: "translate(-50%, -100%) translateZ(40px) rotateZ(-45deg) rotateX(-60deg)",
+            transformStyle: "preserve-3d",
+            backgroundColor: "hsl(var(--background))",
+            color: "hsl(var(--foreground))",
+            zIndex: 50,
+          }}
+        >
+          <div className="font-semibold mb-1 truncate">
+            {plot.name}
+            {plot.cropName ? ` • ${plot.cropName}` : ""}
+          </div>
+          <div className="text-[11px] text-muted-foreground">
+            {plot.cropName
+              ? `Healthy ${plot.cropName} field with stable conditions.`
+              : "No insights available for this part yet."}
+          </div>
+            </div>
+          )}
+
+      {/* simple corner posts */}
+      <div
+        className="absolute -left-1 -top-1 w-2 h-8 bg-amber-800 rounded"
+        style={{ transform: "translateZ(5px)" }}
+      />
+      <div
+        className="absolute -right-1 -top-1 w-2 h-8 bg-amber-800 rounded"
+        style={{ transform: "translateZ(5px)" }}
+      />
+      <div
+        className="absolute -left-1 -bottom-1 w-2 h-8 bg-amber-800 rounded"
+        style={{ transform: "translateZ(5px)" }}
+      />
+      <div
+        className="absolute -right-1 -bottom-1 w-2 h-8 bg-amber-800 rounded"
+        style={{ transform: "translateZ(5px)" }}
+      />
+        </div>
+      )
+    }
+
+// Simple 3D grass surface used for all parts
+
+const Grass3D = () => {
+  return (
+    <div
+      className="relative w-full h-full"
+      style={{ transformStyle: "preserve-3d" }}
+    >
+      {/* base ground using external scanned grass texture */}
+      <div
+        className="absolute inset-0 rounded-lg"
+        style={{
+          backgroundImage: "url('/textures/wild-grass-basecolor.jpg')",
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+          boxShadow:
+            "inset 0 3px 6px rgba(255,255,255,0.25), inset 0 -6px 10px rgba(0,0,0,0.35)",
+          transform: "translateZ(4px)",
+        }}
+      />
+
+      {/* clumps of grass (leaf-like shapes) across the tile */}
+      <div className="absolute inset-[6%]">
+        {Array.from({ length: 12 }).map((_, idx) => {
+          const row = Math.floor(idx / 4)
+          const col = idx % 4
+          return (
+            <div
+              key={idx}
+              style={{
+                position: "absolute",
+                top: `${row * 26}%`,
+                left: `${col * 26}%`,
+                width: "18px",
+                height: "18px",
+                transform: `translateZ(8px)`,
+              }}
+            >
+              {/* three leaves per clump */}
+              <div
+                style={{
+                  position: "absolute",
+                  bottom: 0,
+                  left: "45%",
+                  width: "5px",
+                  height: "16px",
+                  background:
+                    "linear-gradient(to top, #14532d, #22c55e, #bbf7d0)",
+                  borderRadius: "999px",
+                  boxShadow: "0 1px 2px rgba(0,0,0,0.5)",
+                  transform: "translateX(-50%) rotateZ(-8deg)",
+                }}
+              />
+              <div
+                style={{
+                  position: "absolute",
+                  bottom: 0,
+                  left: "35%",
+                  width: "4px",
+                  height: "13px",
+                  background:
+                    "linear-gradient(to top, #14532d, #16a34a, #a7f3d0)",
+                  borderRadius: "999px",
+                  boxShadow: "0 1px 2px rgba(0,0,0,0.45)",
+                  transform: "translateX(-50%) rotateZ(16deg)",
+                }}
+              />
+              <div
+                style={{
+                  position: "absolute",
+                  bottom: 0,
+                  right: "20%",
+                  width: "4px",
+                  height: "12px",
+                  background:
+                    "linear-gradient(to top, #14532d, #16a34a, #bbf7d0)",
+                  borderRadius: "999px",
+                  boxShadow: "0 1px 2px rgba(0,0,0,0.4)",
+                  transform: "translateX(50%) rotateZ(-18deg)",
+                }}
+              />
+            </div>
+          )
+        })}
+      </div>
+
+      {/* soft noise-like texture over everything */}
+      <div
+        className="absolute inset-0 rounded-lg pointer-events-none"
+        style={{
+          backgroundImage:
+            "repeating-linear-gradient(45deg, rgba(255,255,255,0.07) 0, rgba(255,255,255,0.07) 1px, transparent 1px, transparent 3px)",
+          opacity: 0.6,
+          mixBlendMode: "soft-light",
+          transform: "translateZ(10px)",
+        }}
+      />
+
+      {/* taller foreground blades near the front edge */}
+      <div className="absolute left-0 right-0 bottom-1 flex justify-around px-1">
+        {Array.from({ length: 9 }).map((_, i) => (
+          <div
+            key={i}
+            style={{
+              width: "3px",
+              height: `${14 + ((i * 7) % 12)}px`,
+              background:
+                "linear-gradient(to top, #14532d, #22c55e, #bbf7d0)",
+              borderRadius: "999px",
+              boxShadow: "0 1px 3px rgba(0,0,0,0.65)",
+              transform: `translateZ(12px) rotateZ(${(i % 3) - 2}deg)`,
+            }}
+          />
+        ))}
       </div>
     </div>
   )
@@ -214,9 +657,103 @@ export function FarmVisualization() {
     return { 
       rows: baseRows, 
       cols: baseCols, 
-      gridParts: mapped 
+      gridParts: mapped,
     }
   }, [parts, farmMeta])
+
+  const plots3d: Plot3D[] = useMemo(
+    () =>
+      gridParts.map((p, idx) => {
+        const hasCrop = !!p.cropName
+        const lowerCrop = p.cropName?.toLowerCase().trim() || ""
+
+        let type: PlotType = "empty"
+        let content = ""
+
+        if (hasCrop) {
+          type = "crop"
+          content = lowerCrop || "crop"
+        } else if (/barn|silo|house|shed|workshop|store/i.test(p.name)) {
+          type = "building"
+          content = /silo/i.test(p.name) ? "silo" : "barn"
+        } else {
+          type = "crop"
+          content = "crop"
+        }
+
+        const status: PlotStatus = "healthy"
+
+        return {
+          id: p.id,
+          x: p.startCol,
+          y: p.startRow,
+          width: Math.max(1, p.cols),
+          height: Math.max(1, p.rows),
+          type,
+          content,
+          name: p.name,
+          status,
+        growthStage: hasCrop ? 70 : undefined,
+        cropName: p.cropName,
+        }
+      }),
+    [gridParts]
+  )
+
+  const updatePartRectFrom3D = async (
+    id: string,
+    rect: { startRow: number; startCol: number; rows: number; cols: number },
+    commit?: boolean
+  ) => {
+    const current = parts.find((x) => x.id === id)
+    if (!current) return
+
+    // Optimistic UI update so tiles move immediately while dragging
+    setParts((prev) =>
+      prev.map((p) =>
+        p.id === id
+          ? {
+              ...p,
+              geometry: {
+                ...(p.geometry || {}),
+                startRow: rect.startRow,
+                startCol: rect.startCol,
+                rows: rect.rows,
+                cols: rect.cols,
+              },
+            }
+          : p
+      )
+    )
+
+    if (!commit) {
+      // during live drag/resize we only update local state for smoothness
+      return
+    }
+
+    const user = localStorage.getItem("user")
+    if (!user) return
+
+    try {
+      await fetch(`/api/parts/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", authorization: user },
+        body: JSON.stringify({
+          name: current.name,
+          geometry: {
+            ...(current.geometry || {}),
+            startRow: rect.startRow,
+            startCol: rect.startCol,
+            rows: rect.rows,
+            cols: rect.cols,
+          },
+        }),
+      })
+      // we already updated state optimistically; no need to re-set on success
+    } catch {
+      // silent failure; you could add toast / rollback here if desired
+    }
+  }
 
   return (
     <Card>
@@ -306,7 +843,7 @@ export function FarmVisualization() {
           </div>
         </div>
       </CardHeader>
-      <CardContent className="pt-2 pb-3">
+      <CardContent className="p-1 max-h-[600px] overflow-auto">
         {error ? (
           <div className="text-sm text-red-500">{error}</div>
         ) : loading ? (
@@ -314,18 +851,15 @@ export function FarmVisualization() {
         ) : farms.length === 0 ? (
           <div className="text-sm text-muted-foreground">No farms yet. Create one to begin.</div>
         ) : (
-          <div className="w-full md:w-2/3 lg:w-1/2 mx-auto">
-            <div className="overflow-auto p-2 w-full">
-              <FarmGrid 
+          <div className="w-full">
+            <Farm3DLayout
+              plots={plots3d}
                 rows={rows}
                 cols={cols}
-                parts={gridParts}
-                onPartClick={(part) => {
-                  setSelectedPartId(part.id)
-                  setEditOpen(true)
-                }}
+              onChangePlotRect={(id, rect, options) => {
+                updatePartRectFrom3D(id, rect, options?.commit)
+              }}
               />
-            </div>
           </div>
         )}
       </CardContent>

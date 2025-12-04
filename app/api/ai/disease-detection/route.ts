@@ -1,7 +1,30 @@
 import { NextRequest, NextResponse } from "next/server"
 
-// MCB Backend Configuration
+// Local Pipeline and MCB Backend Configuration
+const LOCAL_PIPELINE_URL = process.env.LOCAL_PIPELINE_URL || 'http://127.0.0.1:8002'
 const MCB_BACKEND_URL = process.env.MCB_BACKEND_URL || 'http://localhost:8001'
+
+// Call local Python pipeline service for disease detection
+async function detectDiseaseFromLocalPipeline(imageFile: File): Promise<any> {
+  const formData = new FormData()
+  formData.append('image', imageFile)
+  // Updated to call unified FastAPI service endpoint
+  const response = await fetch(`${LOCAL_PIPELINE_URL}/disease/analyze`, {
+    method: 'POST',
+    body: formData,
+  })
+  if (!response.ok) {
+    throw new Error(`Local pipeline error: ${response.status}`)
+  }
+  const data = await response.json()
+  return {
+    disease: (data.disease || 'healthy').toString(),
+    confidence: typeof data.disease_confidence === 'number' ? data.disease_confidence : 0.9,
+    crop: data.crop,
+    crop_confidence: data.crop_confidence,
+    source: 'local_pipeline'
+  }
+}
 
 // Call MCB backend for disease detection
 async function detectDiseaseFromMCB(imageFile: File, cropType?: string): Promise<any> {
@@ -77,43 +100,57 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Priority 1: Local Python pipeline
     try {
-      // Try to get disease detection from MCB backend first
-      const mcbResult = await detectDiseaseFromMCB(image, cropType)
-      
-      // Enhance the response with treatment recommendations
+      const localResult = await detectDiseaseFromLocalPipeline(image)
       const enhancedResponse = {
-        disease: mcbResult.disease,
-        confidence: mcbResult.confidence,
-        reasoning: mcbResult.reasoning,
-        severity: getDiseaseSeverity(mcbResult.disease),
-        treatment: getTreatmentRecommendations(mcbResult.disease, cropType),
-        prevention: getPreventionTips(mcbResult.disease),
-        symptoms: getDiseaseSymptoms(mcbResult.disease),
-        nextSteps: getNextSteps(mcbResult.disease, mcbResult.confidence),
-        source: mcbResult.source
+        disease: localResult.disease,
+        confidence: localResult.confidence,
+        reasoning: `Detected via local pipeline. Crop: ${localResult.crop} (${(localResult.crop_confidence*100).toFixed(1)}%)`,
+        severity: getDiseaseSeverity(localResult.disease),
+        treatment: getTreatmentRecommendations(localResult.disease, localResult.crop || cropType),
+        prevention: getPreventionTips(localResult.disease),
+        symptoms: getDiseaseSymptoms(localResult.disease),
+        nextSteps: getNextSteps(localResult.disease, localResult.confidence),
+        source: localResult.source
       }
-
       return NextResponse.json(enhancedResponse)
-    } catch (mcbError) {
-      console.warn("MCB backend unavailable, using fallback:", mcbError)
-      
-      // Fallback to local prediction if MCB is unavailable
-      const { disease, confidence } = detectDiseaseFallback(image, cropType)
-      
-      const fallbackResponse = {
-        disease,
-        confidence,
-        reasoning: `Disease analysis completed using fallback prediction. (Note: AI models are temporarily unavailable)`,
-        severity: getDiseaseSeverity(disease),
-        treatment: getTreatmentRecommendations(disease, cropType),
-        prevention: getPreventionTips(disease),
-        symptoms: getDiseaseSymptoms(disease),
-        nextSteps: getNextSteps(disease, confidence),
-        source: 'fallback'
-      }
+    } catch (localError) {
+      console.warn("Local pipeline unavailable, trying MCB backend:", localError)
 
-      return NextResponse.json(fallbackResponse)
+      // Priority 2: MCB backend
+      try {
+        const mcbResult = await detectDiseaseFromMCB(image, cropType)
+        const enhancedResponse = {
+          disease: mcbResult.disease,
+          confidence: mcbResult.confidence,
+          reasoning: mcbResult.reasoning,
+          severity: getDiseaseSeverity(mcbResult.disease),
+          treatment: getTreatmentRecommendations(mcbResult.disease, cropType),
+          prevention: getPreventionTips(mcbResult.disease),
+          symptoms: getDiseaseSymptoms(mcbResult.disease),
+          nextSteps: getNextSteps(mcbResult.disease, mcbResult.confidence),
+          source: mcbResult.source
+        }
+        return NextResponse.json(enhancedResponse)
+      } catch (mcbError) {
+        console.warn("MCB backend unavailable, using fallback:", mcbError)
+
+        // Priority 3: Mock fallback
+        const { disease, confidence } = detectDiseaseFallback(image, cropType)
+        const fallbackResponse = {
+          disease,
+          confidence,
+          reasoning: `Disease analysis completed using fallback prediction. (Note: AI models are temporarily unavailable)`,
+          severity: getDiseaseSeverity(disease),
+          treatment: getTreatmentRecommendations(disease, cropType),
+          prevention: getPreventionTips(disease),
+          symptoms: getDiseaseSymptoms(disease),
+          nextSteps: getNextSteps(disease, confidence),
+          source: 'fallback'
+        }
+        return NextResponse.json(fallbackResponse)
+      }
     }
   } catch (error) {
     console.error("Disease detection API error:", error)

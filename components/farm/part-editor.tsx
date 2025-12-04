@@ -26,6 +26,48 @@ export function PartEditor({ parts, maxRows, maxCols, selectedPartId, onSelectPa
   const [formData, setFormData] = useState({ name: "", startRow: 0, startCol: 0, rows: 2, cols: 2, character: "", cropName: "" })
   const [saving, setSaving] = useState(false)
 
+  // Prevent overlapping parts on the logical grid so tiles don't sit on top of each other in the 3D view.
+  const overlapsExisting = (candidate: { startRow: number; startCol: number; rows: number; cols: number }, ignoreId?: string) => {
+    const cTop = candidate.startRow
+    const cLeft = candidate.startCol
+    const cBottom = candidate.startRow + candidate.rows - 1
+    const cRight = candidate.startCol + candidate.cols - 1
+
+    return parts.some((p) => {
+      if (ignoreId && p.id === ignoreId) return false
+
+      const pTop = p.startRow
+      const pLeft = p.startCol
+      const pBottom = p.startRow + p.rows - 1
+      const pRight = p.startCol + p.cols - 1
+
+      const rowOverlap = cTop <= pBottom && cBottom >= pTop
+      const colOverlap = cLeft <= pRight && cRight >= pLeft
+      return rowOverlap && colOverlap
+    })
+  }
+
+  // Given a desired size, find the first free position in the grid that doesn't overlap
+  const findFirstFreePlacement = (
+    candidate: { startRow: number; startCol: number; rows: number; cols: number },
+    ignoreId?: string
+  ) => {
+    const clampedRows = Math.min(candidate.rows, Math.max(1, maxRows))
+    const clampedCols = Math.min(candidate.cols, Math.max(1, maxCols))
+
+    for (let r = 0; r <= maxRows - clampedRows; r++) {
+      for (let c = 0; c <= maxCols - clampedCols; c++) {
+        const test = { startRow: r, startCol: c, rows: clampedRows, cols: clampedCols }
+        if (!overlapsExisting(test, ignoreId)) {
+          return test
+        }
+      }
+    }
+
+    // if no space found, fall back to the original candidate (may overlap)
+    return candidate
+  }
+
   useEffect(() => {
     if (editingPart) {
       const p = parts.find((x) => x.id === editingPart)
@@ -46,13 +88,25 @@ export function PartEditor({ parts, maxRows, maxCols, selectedPartId, onSelectPa
   const handleAdd = async () => {
     try {
       setSaving(true)
-      const color = getColor(parts.length)
-      await onAddPart({
-        name: formData.name || `Part ${parts.length + 1}`,
+
+      const initial = {
         startRow: formData.startRow,
         startCol: formData.startCol,
         rows: formData.rows,
         cols: formData.cols,
+      }
+
+      const candidate = overlapsExisting(initial)
+        ? findFirstFreePlacement(initial)
+        : initial
+
+      const color = getColor(parts.length)
+      await onAddPart({
+        name: formData.name || `Part ${parts.length + 1}`,
+        startRow: candidate.startRow,
+        startCol: candidate.startCol,
+        rows: candidate.rows,
+        cols: candidate.cols,
         character: formData.character || undefined,
         cropName: formData.cropName || undefined,
         color,
@@ -67,12 +121,24 @@ export function PartEditor({ parts, maxRows, maxCols, selectedPartId, onSelectPa
     if (!editingPart) return
     try {
       setSaving(true)
-      await onUpdatePart(editingPart, {
-        name: formData.name,
+
+      const initial = {
         startRow: formData.startRow,
         startCol: formData.startCol,
         rows: formData.rows,
         cols: formData.cols,
+      }
+
+      const candidate = overlapsExisting(initial, editingPart)
+        ? findFirstFreePlacement(initial, editingPart)
+        : initial
+
+      await onUpdatePart(editingPart, {
+        name: formData.name,
+        startRow: candidate.startRow,
+        startCol: candidate.startCol,
+        rows: candidate.rows,
+        cols: candidate.cols,
         character: formData.character || undefined,
         cropName: formData.cropName || undefined,
       })

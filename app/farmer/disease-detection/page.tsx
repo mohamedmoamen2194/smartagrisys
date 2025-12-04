@@ -55,6 +55,34 @@ export default function DiseaseDetectionPage() {
                   />
                 </CardContent>
               </Card>
+
+              {result && !loading && !error && (
+                <div className="space-y-3">
+                  <div className="p-4 rounded-lg bg-green-900/10 dark:bg-green-50">
+                    <div className="text-center">
+                      <div className="text-xl font-semibold text-green-700 dark:text-green-700">
+                        {result.disease}
+                      </div>
+                      {typeof result.confidence === 'number' && (
+                        <div className="text-sm text-green-800/80 dark:text-green-800/80 mt-1">
+                          Confidence: {(result.confidence * 100).toFixed(1)}%
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {result.treatment && result.treatment.length > 0 && (
+                    <div className="p-4 rounded-lg bg-green-900/10 dark:bg-green-50">
+                      <h4 className="font-semibold text-green-800 dark:text-green-800 mb-2">Treatment Recommendations</h4>
+                      <ul className="text-sm text-green-800/90 dark:text-green-800/90 space-y-1">
+                        {result.treatment.map((treatment: string, index: number) => (
+                          <li key={index}>• {treatment}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              )}
             </TabsContent>
             
             <TabsContent value="camera" className="space-y-4">
@@ -102,11 +130,11 @@ export default function DiseaseDetectionPage() {
                 </div>
               ) : result ? (
                 <div className="space-y-4">
-                  <div className="text-center p-6 bg-green-50 rounded-lg dark:bg-green-900/20">
-                    <div className="text-2xl font-bold text-green-600 dark:text-green-400 mb-2">
+                  <div className="text-center p-6 rounded-lg bg-green-900/10 dark:bg-green-50">
+                    <div className="text-2xl font-bold text-green-700 dark:text-green-700 mb-2">
                       {result.disease}
                     </div>
-                    <div className="text-green-700 dark:text-green-300 mb-2">
+                    <div className="text-green-800/80 dark:text-green-800/80 mb-2">
                       Confidence: {(result.confidence * 100).toFixed(1)}%
                     </div>
                     {result.source && (
@@ -117,22 +145,22 @@ export default function DiseaseDetectionPage() {
                   </div>
                   
                   {result.reasoning && (
-                    <div className="p-4 bg-blue-50 rounded-lg dark:bg-blue-900/20">
-                      <h4 className="font-semibold text-blue-800 dark:text-blue-200 mb-2">Analysis Details</h4>
-                      <p className="text-sm text-blue-700 dark:text-blue-300">{result.reasoning}</p>
+                    <div className="p-4 rounded-lg bg-green-900/10 dark:bg-green-50">
+                      <h4 className="font-semibold text-green-800 dark:text-green-800 mb-2">Analysis Details</h4>
+                      <p className="text-sm text-green-800/90 dark:text-green-800/90">{result.reasoning}</p>
                     </div>
                   )}
                   
                   {result.severity && (
-                    <div className="p-4 bg-orange-50 rounded-lg dark:bg-orange-900/20">
-                      <h4 className="font-semibold text-orange-800 dark:text-orange-200 mb-2">Severity: {result.severity.toUpperCase()}</h4>
+                    <div className="p-4 rounded-lg bg-green-900/10 dark:bg-green-50">
+                      <h4 className="font-semibold text-green-800 dark:text-green-800 mb-2">Severity: {result.severity.toUpperCase()}</h4>
                     </div>
                   )}
                   
                   {result.treatment && result.treatment.length > 0 && (
-                    <div className="p-4 bg-red-50 rounded-lg dark:bg-red-900/20">
-                      <h4 className="font-semibold text-red-800 dark:text-red-200 mb-2">Treatment Recommendations</h4>
-                      <ul className="text-sm text-red-700 dark:text-red-300 space-y-1">
+                    <div className="p-4 rounded-lg bg-green-900/10 dark:bg-green-50">
+                      <h4 className="font-semibold text-green-800 dark:text-green-800 mb-2">Treatment Recommendations</h4>
+                      <ul className="text-sm text-green-800/90 dark:text-green-800/90 space-y-1">
                         {result.treatment.map((treatment: string, index: number) => (
                           <li key={index}>• {treatment}</li>
                         ))}
@@ -141,9 +169,9 @@ export default function DiseaseDetectionPage() {
                   )}
                   
                   {result.symptoms && result.symptoms.length > 0 && (
-                    <div className="p-4 bg-yellow-50 rounded-lg dark:bg-yellow-900/20">
-                      <h4 className="font-semibold text-yellow-800 dark:text-yellow-200 mb-2">Symptoms</h4>
-                      <ul className="text-sm text-yellow-700 dark:text-yellow-300 space-y-1">
+                    <div className="p-4 rounded-lg bg-green-900/10 dark:bg-green-50">
+                      <h4 className="font-semibold text-green-800 dark:text-green-800 mb-2">Symptoms</h4>
+                      <ul className="text-sm text-green-800/90 dark:text-green-800/90 space-y-1">
                         {result.symptoms.map((symptom: string, index: number) => (
                           <li key={index}>• {symptom}</li>
                         ))}
@@ -152,9 +180,9 @@ export default function DiseaseDetectionPage() {
                   )}
                   
                   {result.nextSteps && result.nextSteps.length > 0 && (
-                    <div className="p-4 bg-purple-50 rounded-lg dark:bg-purple-900/20">
-                      <h4 className="font-semibold text-purple-800 dark:text-purple-200 mb-2">Next Steps</h4>
-                      <ul className="text-sm text-purple-700 dark:text-purple-300 space-y-1">
+                    <div className="p-4 rounded-lg bg-green-900/10 dark:bg-green-50">
+                      <h4 className="font-semibold text-green-800 dark:text-green-800 mb-2">Next Steps</h4>
+                      <ul className="text-sm text-green-800/90 dark:text-green-800/90 space-y-1">
                         {result.nextSteps.map((step: string, index: number) => (
                           <li key={index}>• {step}</li>
                         ))}

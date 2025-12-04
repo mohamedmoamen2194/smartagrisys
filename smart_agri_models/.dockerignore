@@ -1,0 +1,39 @@
+# Python caches
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+.pytest_cache/
+
+# Notebooks and logs
+*.ipynb
+*.log
+*.tmp
+
+# Large media not needed at runtime (keep model weights!)
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.svg
+
+# Local env files (use Docker envs instead)
+.env
+env_config.env
+
+# Legacy/unused for runtime (keep crop_rec and disease pipeline)
+mcb/
+modal_deploy/
+
+debug_groq.py
+deploy.py
+start.py
+verify_fix.py
+
+# Keep:
+# services/**
+# disease_detection/full_disease_pipeline/**
+# crop_rec/**
+# main.py
+# requirements.txt

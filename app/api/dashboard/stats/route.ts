@@ -76,15 +76,20 @@ export async function GET() {
         }
       });
 
-      // Get low stock items count
-      const lowStockItems = await prisma.inventoryItem.count({
+      // Get low stock items count (quantity <= minThreshold per row)
+      const farmerInventory = await prisma.inventoryItem.findMany({
         where: {
           farmerId: farmer.id,
-          quantity: {
-            lte: prisma.inventoryItem.fields.minThreshold
-          }
-        }
+        },
+        select: {
+          quantity: true,
+          minThreshold: true,
+        },
       });
+
+      const lowStockItems = farmerInventory.filter(
+        (item) => item.quantity <= item.minThreshold
+      ).length;
 
       // Calculate statistics
       stats.totalRevenue = Array.isArray(orders)

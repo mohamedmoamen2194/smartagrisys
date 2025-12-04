@@ -1,0 +1,42 @@
+# Version control
+.git
+.git/**
+
+# Python caches
+**/__pycache__/
+**/*.pyc
+**/*.pyo
+**/*.pyd
+**/*.egg-info/
+**/.pytest_cache/
+
+# Notebooks and dev media
+**/*.ipynb
+**/*.log
+**/*.tmp
+
+# Images and diagrams (not needed at runtime)
+**/*.png
+**/*.jpg
+**/*.jpeg
+**/*.gif
+**/*.svg
+
+# Local env/config (set via Docker/Compose instead)
+.env
+smart_agri_models/.env
+smart_agri_models/env_config.env
+
+# Unused or legacy modules/scripts for the runtime image
+smart_agri_models/mcb/**
+smart_agri_models/modal_deploy/**
+smart_agri_models/debug_groq.py
+smart_agri_models/deploy.py
+smart_agri_models/start.py
+smart_agri_models/verify_fix.py
+
+# Keep essential model weights and services
+# Do NOT exclude: smart_agri_models/services/**
+# Do NOT exclude: smart_agri_models/disease_detection/full_disease_pipeline/**
+# Do NOT exclude: smart_agri_models/requirements.txt
+# Do NOT exclude: smart_agri_models/main.py
