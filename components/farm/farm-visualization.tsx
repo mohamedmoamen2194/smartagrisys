@@ -11,6 +11,7 @@ import { PartEditor } from "@/components/farm/part-editor"
 import { cn } from "@/lib/utils"
 import { FarmPartsGrid } from "@/components/farm/farm-parts-grid"
 import { FarmPartModel, getColor } from "@/components/farm/farm-part"
+import { useTranslations } from "@/hooks/useTranslations"
 
 type ApiFarm = { id: string; name: string }
 type ApiFarmPart = {
@@ -146,6 +147,7 @@ const FarmPlot3D = ({
     options?: { commit?: boolean }
   ) => void
 }) => {
+  const { t } = useTranslations()
   const [isHovered, setIsHovered] = useState(false)
   const [dragging, setDragging] = useState(false)
   const [resizing, setResizing] = useState(false)
@@ -420,8 +422,8 @@ const FarmPlot3D = ({
           </div>
           <div className="text-[11px] text-muted-foreground">
             {plot.cropName
-              ? `Healthy ${plot.cropName} field with stable conditions.`
-              : "No insights available for this part yet."}
+              ? `${plot.cropName} - ${t("farm.healthyCropField")}`
+              : t("farm.noInsights")}
           </div>
             </div>
           )}
@@ -567,6 +569,7 @@ const Grass3D = () => {
 }
 
 export function FarmVisualization() {
+  const { t } = useTranslations()
   const [farms, setFarms] = useState<ApiFarm[]>([])
   const [selectedFarmId, setSelectedFarmId] = useState<string>("")
   const [parts, setParts] = useState<ApiFarmPart[]>([])
@@ -760,13 +763,13 @@ export function FarmVisualization() {
       <CardHeader className="py-3">
         <div className="flex items-center justify-between gap-3">
           <div>
-            <CardTitle className="text-lg">My Farms</CardTitle>
-            <CardDescription className="text-xs">Select a farm to view its layout</CardDescription>
+            <CardTitle className="text-lg">{t("farm.myFarms")}</CardTitle>
+            <CardDescription className="text-xs">{t("farm.selectFarmDescription")}</CardDescription>
           </div>
           <div className="flex items-center gap-2">
             <Select value={selectedFarmId} onValueChange={setSelectedFarmId}>
               <SelectTrigger className="w-[220px]">
-                <SelectValue placeholder="Select farm" />
+                <SelectValue placeholder={t("farm.selectFarm")} />
               </SelectTrigger>
               <SelectContent>
                 {farms.map((f) => (
@@ -776,29 +779,29 @@ export function FarmVisualization() {
             </Select>
             <Dialog open={createOpen} onOpenChange={setCreateOpen}>
               <DialogTrigger asChild>
-                <Button size="sm">Add Farm</Button>
+                <Button size="sm">{t("farm.addFarm")}</Button>
               </DialogTrigger>
               <DialogContent>
                 <DialogHeader>
-                  <DialogTitle>Add Farm</DialogTitle>
-                  <DialogDescription>Provide basic information to create a new farm.</DialogDescription>
+                  <DialogTitle>{t("farm.addFarmTitle")}</DialogTitle>
+                  <DialogDescription>{t("farm.addFarmDescription")}</DialogDescription>
                 </DialogHeader>
                 <div className="grid gap-4 py-2">
                   <div className="grid grid-cols-4 items-center gap-2">
-                    <Label htmlFor="farm-name" className="text-right">Name</Label>
+                    <Label htmlFor="farm-name" className="text-right">{t("farm.name")}</Label>
                     <Input id="farm-name" value={name} onChange={(e) => setName(e.target.value)} className="col-span-3" />
                   </div>
                   <div className="grid grid-cols-4 items-center gap-2">
-                    <Label htmlFor="farm-location" className="text-right">Location</Label>
+                    <Label htmlFor="farm-location" className="text-right">{t("farm.location")}</Label>
                     <Input id="farm-location" value={location} onChange={(e) => setLocation(e.target.value)} className="col-span-3" />
                   </div>
                   <div className="grid grid-cols-4 items-center gap-2">
-                    <Label htmlFor="farm-area" className="text-right">Area (ha)</Label>
+                    <Label htmlFor="farm-area" className="text-right">{t("farm.areaHa")}</Label>
                     <Input id="farm-area" type="number" step="0.01" value={areaHa} onChange={(e) => setAreaHa(e.target.value)} className="col-span-3" />
                   </div>
                 </div>
                 <DialogFooter>
-                  <Button variant="outline" onClick={() => setCreateOpen(false)}>Cancel</Button>
+                  <Button variant="outline" onClick={() => setCreateOpen(false)}>{t("common.cancel")}</Button>
                   <Button
                     onClick={async () => {
                       if (!name.trim()) return
@@ -828,18 +831,18 @@ export function FarmVisualization() {
                     }}
                     disabled={creating || !name.trim()}
                   >
-                    {creating ? "Creating..." : "Create"}
+                    {creating ? t("farm.creating") : t("farm.create")}
                   </Button>
                 </DialogFooter>
               </DialogContent>
             </Dialog>
-            <Button size="sm" variant="outline" onClick={() => setEditOpen(true)} disabled={!selectedFarmId}>Edit Layout</Button>
+            <Button size="sm" variant="outline" onClick={() => setEditOpen(true)} disabled={!selectedFarmId}>{t("farm.editLayout")}</Button>
             <Button size="sm" variant="outline" onClick={() => {
               setEfName(farmMeta?.name || (farms.find(f=>f.id===selectedFarmId)?.name ?? ""))
               setEfRows(String(farmMeta?.gridRows ?? rows))
               setEfCols(String(farmMeta?.gridCols ?? cols))
               setEditFarmOpen(true)
-            }} disabled={!selectedFarmId}>Edit Farm</Button>
+            }} disabled={!selectedFarmId}>{t("farm.editFarm")}</Button>
           </div>
         </div>
       </CardHeader>
@@ -847,9 +850,9 @@ export function FarmVisualization() {
         {error ? (
           <div className="text-sm text-red-500">{error}</div>
         ) : loading ? (
-          <div className="text-sm text-muted-foreground">Loading…</div>
+          <div className="text-sm text-muted-foreground">{t("farm.loading")}</div>
         ) : farms.length === 0 ? (
-          <div className="text-sm text-muted-foreground">No farms yet. Create one to begin.</div>
+          <div className="text-sm text-muted-foreground">{t("farm.noFarms")}</div>
         ) : (
           <div className="w-full">
             <Farm3DLayout
@@ -866,8 +869,8 @@ export function FarmVisualization() {
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
         <DialogContent className="max-w-xl w-[90vw] max-h-[70vh] overflow-auto">
           <DialogHeader>
-            <DialogTitle>Edit Farm Layout</DialogTitle>
-            <DialogDescription>Manage parts of the selected farm.</DialogDescription>
+            <DialogTitle>{t("farm.editLayoutTitle")}</DialogTitle>
+            <DialogDescription>{t("farm.editLayoutDescription")}</DialogDescription>
           </DialogHeader>
           <PartEditor
             parts={(gridParts as unknown as FarmPartModel[])}
@@ -910,32 +913,32 @@ export function FarmVisualization() {
             }}
           />
           <DialogFooter>
-            <Button variant="outline" onClick={() => setEditOpen(false)}>Close</Button>
+            <Button variant="outline" onClick={() => setEditOpen(false)}>{t("farm.close")}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
       <Dialog open={editFarmOpen} onOpenChange={setEditFarmOpen}>
         <DialogContent className="max-w-md w-[90vw]">
           <DialogHeader>
-            <DialogTitle>Edit Farm</DialogTitle>
-            <DialogDescription>Update farm name and grid dimensions.</DialogDescription>
+            <DialogTitle>{t("farm.editFarmTitle")}</DialogTitle>
+            <DialogDescription>{t("farm.editFarmDescription")}</DialogDescription>
           </DialogHeader>
           <div className="grid gap-3 py-1">
             <div className="grid grid-cols-4 items-center gap-2">
-              <Label className="text-right">Name</Label>
+              <Label className="text-right">{t("farm.name")}</Label>
               <Input className="col-span-3" value={efName} onChange={(e)=>setEfName(e.target.value)} />
             </div>
             <div className="grid grid-cols-4 items-center gap-2">
-              <Label className="text-right">Rows</Label>
+              <Label className="text-right">{t("farm.rows")}</Label>
               <Input className="col-span-3" type="number" min={3} max={50} value={efRows} onChange={(e)=>setEfRows(e.target.value)} />
             </div>
             <div className="grid grid-cols-4 items-center gap-2">
-              <Label className="text-right">Cols</Label>
+              <Label className="text-right">{t("farm.cols")}</Label>
               <Input className="col-span-3" type="number" min={3} max={50} value={efCols} onChange={(e)=>setEfCols(e.target.value)} />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={()=>setEditFarmOpen(false)}>Cancel</Button>
+            <Button variant="outline" onClick={()=>setEditFarmOpen(false)}>{t("common.cancel")}</Button>
             <Button onClick={async ()=>{
               if(!selectedFarmId) return
               const user = localStorage.getItem("user"); if(!user) return
@@ -947,7 +950,7 @@ export function FarmVisualization() {
                 setFarms(prev=> prev.map(f=> f.id===updated.id ? { ...f, name: updated.name } : f))
                 setEditFarmOpen(false)
               }
-            }}>Save</Button>
+            }}>{t("farm.save")}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

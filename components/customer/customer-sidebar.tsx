@@ -19,13 +19,18 @@ import {
 } from "@/components/ui/sidebar"
 import { Button } from "@/components/ui/button"
 import { ModeToggle } from "@/components/mode-toggle"
+import { LanguageSwitcher } from "@/components/language-switcher"
 import { UserNav } from "@/components/user-nav"
+import { useTranslations } from "@/hooks/useTranslations"
+import { cn } from "@/lib/utils"
 
 export function CustomerSidebar() {
   const pathname = usePathname()
   const router = useRouter()
+  const { dir, t } = useTranslations()
 
   const isActive = (path: string) => pathname === path
+  const isRTL = dir === "rtl"
 
   const handleLogout = () => {
     localStorage.removeItem("user")
@@ -33,7 +38,7 @@ export function CustomerSidebar() {
   }
 
   return (
-    <Sidebar className="border-r">
+    <Sidebar side={isRTL ? "right" : "left"} className={cn(isRTL ? "border-l" : "border-r")}>
       <SidebarHeader className="border-b">
         <div className="flex items-center justify-between px-4 py-3">
           <div className="flex items-center gap-2">
@@ -43,19 +48,19 @@ export function CustomerSidebar() {
           <SidebarTrigger />
         </div>
         <div className="px-4 py-2">
-          <div className="text-sm text-muted-foreground">Customer Portal</div>
+          <div className="text-sm text-muted-foreground">{t("customer.portal")}</div>
         </div>
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>Shop</SidebarGroupLabel>
+          <SidebarGroupLabel>{t("customer.shop")}</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               <SidebarMenuItem>
                 <SidebarMenuButton asChild isActive={isActive("/customer/shop")}>
                   <Link href="/customer/shop">
                     <Store />
-                    <span>Browse Products</span>
+                    <span>{t("customer.browseProducts")}</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
@@ -63,7 +68,7 @@ export function CustomerSidebar() {
                 <SidebarMenuButton asChild isActive={isActive("/customer/cart")}>
                   <Link href="/customer/cart">
                     <ShoppingCart />
-                    <span>Shopping Cart</span>
+                    <span>{t("customer.shoppingCart")}</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
@@ -72,14 +77,14 @@ export function CustomerSidebar() {
         </SidebarGroup>
 
         <SidebarGroup>
-          <SidebarGroupLabel>Account</SidebarGroupLabel>
+          <SidebarGroupLabel>{t("customer.account")}</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               <SidebarMenuItem>
                 <SidebarMenuButton asChild isActive={isActive("/customer/orders")}>
                   <Link href="/customer/orders">
                     <Package />
-                    <span>Order History</span>
+                    <span>{t("customer.orderHistory")}</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
@@ -87,7 +92,7 @@ export function CustomerSidebar() {
                 <SidebarMenuButton asChild isActive={isActive("/customer/payment-methods")}>
                   <Link href="/customer/payment-methods">
                     <CreditCard />
-                    <span>Payment Methods</span>
+                    <span>{t("customer.paymentMethods")}</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
@@ -95,7 +100,7 @@ export function CustomerSidebar() {
                 <SidebarMenuButton asChild isActive={isActive("/customer/shipping")}>
                   <Link href="/customer/shipping">
                     <Truck />
-                    <span>Shipping Info</span>
+                    <span>{t("customer.shippingInfo")}</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
@@ -104,13 +109,16 @@ export function CustomerSidebar() {
         </SidebarGroup>
       </SidebarContent>
       <SidebarFooter className="border-t p-2">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-2">
           <UserNav />
-          <div className="flex items-center gap-2">
-            <ModeToggle />
-            <Button variant="ghost" size="icon" onClick={handleLogout} title="Logout">
-              <LogOut className="h-4 w-4" />
-            </Button>
+          <div className="flex items-center justify-between gap-2">
+            <LanguageSwitcher />
+            <div className="flex items-center gap-2">
+              <ModeToggle />
+              <Button variant="ghost" size="icon" onClick={handleLogout} title="Logout">
+                <LogOut className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
         </div>
       </SidebarFooter>

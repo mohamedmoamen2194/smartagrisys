@@ -5,6 +5,8 @@ import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
 import { Toaster } from "sonner"
 import { MainNav } from "@/components/main-nav"
+import { TranslationProvider } from "@/hooks/useTranslations"
+import { HtmlLangDir } from "@/components/html-lang-dir"
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -25,21 +27,24 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html suppressHydrationWarning>
       <body className={`${inter.className} antialiased`}>
-        <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
-          <MainNav />
-          {children}
-          <Toaster 
-            position="top-center"
-            toastOptions={{
-              style: {
-                fontSize: '14px',
-              },
-              className: 'text-sm',
-            }}
-          />
-        </ThemeProvider>
+        <TranslationProvider>
+          <HtmlLangDir />
+          <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+            <MainNav />
+            {children}
+            <Toaster 
+              position="top-center"
+              toastOptions={{
+                style: {
+                  fontSize: '14px',
+                },
+                className: 'text-sm',
+              }}
+            />
+          </ThemeProvider>
+        </TranslationProvider>
       </body>
     </html>
   )

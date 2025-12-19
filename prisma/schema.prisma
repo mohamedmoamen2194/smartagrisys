@@ -80,16 +80,20 @@ model Customer {
 
 // Product Management
 model Product {
-  id          String        @id @default(cuid())
-  name        String
-  description String?       @db.Text
-  category    ProductCategory
-  price       Decimal       @db.Decimal(10, 2)
-  unit        String        // kg, pieces, etc.
-  farmerId    String
-  isActive    Boolean       @default(true)
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
+  id            String        @id @default(cuid())
+  name          String        // Keep for backward compatibility, will use nameEn
+  nameEn        String?       // English name
+  nameAr        String?       // Arabic name
+  description   String?       @db.Text // Keep for backward compatibility, will use descriptionEn
+  descriptionEn String?       @db.Text // English description
+  descriptionAr String?       @db.Text // Arabic description
+  category      ProductCategory
+  price         Decimal       @db.Decimal(10, 2)
+  unit          String        // kg, pieces, etc.
+  farmerId      String
+  isActive      Boolean       @default(true)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
 
   farmer Farmer @relation(fields: [farmerId], references: [id], onDelete: Cascade)
 

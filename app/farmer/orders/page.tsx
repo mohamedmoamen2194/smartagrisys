@@ -11,10 +11,12 @@ import { ShoppingCart, Search, Eye, Package, Truck, XCircle } from "lucide-react
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { toast } from "sonner"
 import { FarmerPageHeader } from "@/components/farmer/page-header"
+import { useTranslations } from "@/hooks/useTranslations"
 
 const STATUS_OPTIONS = ["PENDING", "PROCESSING", "SHIPPED", "DELIVERED", "CANCELLED"]
 
 export default function OrdersPage() {
+  const { t } = useTranslations()
   const [orders, setOrders] = useState([])
   const [loading, setLoading] = useState(true)
   const [tab, setTab] = useState("all")
@@ -70,16 +72,16 @@ export default function OrdersPage() {
       const updated = await res.json()
       setOrders(orders => orders.map(o => o.id === updated.order.id ? updated.order : o))
       setSelectedOrder(updated.order)
-      toast.success("Order status updated")
+      toast.success(t("farmerOrders.orderStatusUpdated"))
     } catch {
-      toast.error("Failed to update status")
+      toast.error(t("farmerOrders.failedToUpdateStatus"))
     } finally {
       setStatusUpdating(false)
     }
   }
 
   const handleReject = async (order) => {
-    if (!confirm(`Are you sure you want to cancel order ${order.orderNumber}? This action cannot be undone.`)) {
+    if (!confirm(t("farmerOrders.confirmCancel").replace("{orderNumber}", order.orderNumber))) {
       return
     }
 
@@ -94,9 +96,9 @@ export default function OrdersPage() {
       if (!res.ok) throw new Error()
       const updated = await res.json()
       setOrders(orders => orders.map(o => o.id === updated.order.id ? updated.order : o))
-      toast.success("Order cancelled successfully")
+      toast.success(t("farmerOrders.orderCancelled"))
     } catch {
-      toast.error("Failed to cancel order")
+      toast.error(t("farmerOrders.failedToCancel"))
     } finally {
       setStatusUpdating(false)
     }
@@ -130,69 +132,69 @@ export default function OrdersPage() {
 
   return (
     <div className="w-full px-4 sm:px-6 lg:px-8 py-6">
-      <FarmerPageHeader title="Order Management" actions={<Button variant="outline">Export Orders</Button>} />
+      <FarmerPageHeader title={t("farmerOrders.title")} actions={<Button variant="outline">{t("farmerOrders.exportOrders")}</Button>} />
 
       <div className="grid gap-4 md:grid-cols-4 mt-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Orders</CardTitle>
+            <CardTitle className="text-sm font-medium">{t("farmerOrders.totalOrders")}</CardTitle>
             <ShoppingCart className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{orders.length}</div>
-            <p className="text-xs text-muted-foreground">This month</p>
+            <p className="text-xs text-muted-foreground">{t("farmerOrders.thisMonth")}</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Pending</CardTitle>
+            <CardTitle className="text-sm font-medium">{t("farmerOrders.pending")}</CardTitle>
             <Package className="h-4 w-4 text-yellow-600" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{orders.filter(o => o.status === "PENDING").length}</div>
-            <p className="text-xs text-muted-foreground">Awaiting processing</p>
+            <p className="text-xs text-muted-foreground">{t("farmerOrders.awaitingProcessing")}</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Shipped</CardTitle>
+            <CardTitle className="text-sm font-medium">{t("farmerOrders.shipped")}</CardTitle>
             <Truck className="h-4 w-4 text-blue-600" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{orders.filter(o => o.status === "SHIPPED").length}</div>
-            <p className="text-xs text-muted-foreground">In transit</p>
+            <p className="text-xs text-muted-foreground">{t("farmerOrders.inTransit")}</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Revenue</CardTitle>
+            <CardTitle className="text-sm font-medium">{t("farmerOrders.revenue")}</CardTitle>
             <ShoppingCart className="h-4 w-4 text-green-600" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">${orders.filter(o => o.status === "DELIVERED").reduce((sum, o) => sum + Number(o.total || 0), 0).toLocaleString()}</div>
-            <p className="text-xs text-muted-foreground">This month</p>
+            <p className="text-xs text-muted-foreground">{t("farmerOrders.thisMonth")}</p>
           </CardContent>
         </Card>
       </div>
 
       <Tabs defaultValue="all" value={tab} onValueChange={setTab} className="mt-6">
         <TabsList>
-          <TabsTrigger value="all">All Orders</TabsTrigger>
-          <TabsTrigger value="pending">Pending</TabsTrigger>
-          <TabsTrigger value="processing">Processing</TabsTrigger>
-          <TabsTrigger value="shipped">Shipped</TabsTrigger>
-          <TabsTrigger value="delivered">Delivered</TabsTrigger>
-          <TabsTrigger value="cancelled">Cancelled</TabsTrigger>
+          <TabsTrigger value="all">{t("farmerOrders.allOrders")}</TabsTrigger>
+          <TabsTrigger value="pending">{t("farmerOrders.pending")}</TabsTrigger>
+          <TabsTrigger value="processing">{t("farmerOrders.processing")}</TabsTrigger>
+          <TabsTrigger value="shipped">{t("farmerOrders.shipped")}</TabsTrigger>
+          <TabsTrigger value="delivered">{t("farmerOrders.delivered")}</TabsTrigger>
+          <TabsTrigger value="cancelled">{t("farmerOrders.cancelled")}</TabsTrigger>
         </TabsList>
         <TabsContent value={tab} className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>Orders</CardTitle>
-              <CardDescription>Manage customer orders</CardDescription>
+              <CardTitle>{t("farmerOrders.orders")}</CardTitle>
+              <CardDescription>{t("farmerOrders.manageOrders")}</CardDescription>
               <div className="flex items-center space-x-2">
                 <div className="relative flex-1 max-w-sm">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input placeholder="Search orders..." className="pl-10" />
+                  <Input placeholder={t("farmerOrders.searchOrders")} className="pl-10" />
                 </div>
               </div>
             </CardHeader>
@@ -201,21 +203,21 @@ export default function OrdersPage() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Order ID</TableHead>
-                      <TableHead>Customer</TableHead>
-                      <TableHead>Product(s)</TableHead>
-                      <TableHead className="text-right">Quantity</TableHead>
-                      <TableHead className="text-right">Total</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Date</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
+                      <TableHead>{t("farmerOrders.orderId")}</TableHead>
+                      <TableHead>{t("farmerOrders.customer")}</TableHead>
+                      <TableHead>{t("farmerOrders.products")}</TableHead>
+                      <TableHead className="text-right">{t("farmerOrders.quantity")}</TableHead>
+                      <TableHead className="text-right">{t("farmerOrders.total")}</TableHead>
+                      <TableHead>{t("farmerOrders.status")}</TableHead>
+                      <TableHead>{t("farmerOrders.date")}</TableHead>
+                      <TableHead className="text-right">{t("farmerOrders.actions")}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {loading ? (
-                      <TableRow><TableCell colSpan={8}>Loading...</TableCell></TableRow>
+                      <TableRow><TableCell colSpan={8}>{t("farmerOrders.loading")}</TableCell></TableRow>
                     ) : filteredOrders.length === 0 ? (
-                      <TableRow><TableCell colSpan={8}>No orders found.</TableCell></TableRow>
+                      <TableRow><TableCell colSpan={8}>{t("farmerOrders.noOrders")}</TableCell></TableRow>
                     ) : filteredOrders.map((order) => (
                       <TableRow key={order.id}>
                         <TableCell className="font-medium">{order.orderNumber}</TableCell>
@@ -238,18 +240,18 @@ export default function OrdersPage() {
                           <div className="flex gap-2 justify-end">
                             <Button variant="outline" size="sm" onClick={() => handleView(order)}>
                               <Eye className="mr-2 h-4 w-4" />
-                              View
+                              {t("farmerOrders.view")}
                             </Button>
                             {order.status === "PENDING" && (
                                                            <Button 
-                               variant="destructive" 
-                               size="sm" 
-                               onClick={() => handleReject(order)}
-                               disabled={statusUpdating}
-                             >
-                               <XCircle className="mr-2 h-4 w-4" />
-                               Cancel
-                             </Button>
+                              variant="destructive" 
+                              size="sm" 
+                              onClick={() => handleReject(order)}
+                              disabled={statusUpdating}
+                            >
+                              <XCircle className="mr-2 h-4 w-4" />
+                              {t("farmerOrders.cancel")}
+                            </Button>
                             )}
                           </div>
                         </TableCell>
@@ -267,17 +269,17 @@ export default function OrdersPage() {
       <Dialog open={!!selectedOrder} onOpenChange={handleClose}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Order Details</DialogTitle>
+            <DialogTitle>{t("farmerOrders.orderDetails")}</DialogTitle>
           </DialogHeader>
           {selectedOrder && (
             <div className="space-y-4">
               <div>
-                <strong>Order ID:</strong> {selectedOrder.orderNumber}<br />
-                <strong>Customer:</strong> {selectedOrder.customer?.user?.firstName} {selectedOrder.customer?.user?.lastName}<br />
-                <strong>Status:</strong> {selectedOrder.status}
+                <strong>{t("farmerOrders.orderId")}:</strong> {selectedOrder.orderNumber}<br />
+                <strong>{t("farmerOrders.customer")}:</strong> {selectedOrder.customer?.user?.firstName} {selectedOrder.customer?.user?.lastName}<br />
+                <strong>{t("farmerOrders.status")}:</strong> {selectedOrder.status}
               </div>
               <div>
-                <strong>Products:</strong>
+                <strong>{t("farmerOrders.products")}:</strong>
                 <ul className="list-disc ml-6">
                   {selectedOrder.orderItems.map(item => (
                     <li key={item.id}>{item.product?.name} x {item.quantity}</li>
@@ -285,10 +287,10 @@ export default function OrdersPage() {
                 </ul>
               </div>
               <div>
-                <strong>Total:</strong> ${Number(selectedOrder.total).toFixed(2)}
+                <strong>{t("farmerOrders.total")}:</strong> ${Number(selectedOrder.total).toFixed(2)}
               </div>
               <div>
-                <label className="block font-medium mb-1">Change Status:</label>
+                <label className="block font-medium mb-1">{t("farmerOrders.changeStatus")}:</label>
                 <select
                   className="border rounded px-2 py-1"
                   value={selectedOrder.status}
@@ -309,14 +311,14 @@ export default function OrdersPage() {
                      className="w-full"
                    >
                      <XCircle className="mr-2 h-4 w-4" />
-                     Cancel Order
+                     {t("farmerOrders.cancelOrder")}
                    </Button>
                 </div>
               )}
             </div>
           )}
           <DialogFooter>
-            <Button variant="outline" onClick={handleClose}>Close</Button>
+            <Button variant="outline" onClick={handleClose}>{t("common.close")}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

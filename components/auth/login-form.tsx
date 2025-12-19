@@ -9,12 +9,14 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Eye, EyeOff, Loader2 } from "lucide-react"
+import { useTranslations } from "@/hooks/useTranslations"
 
 interface LoginFormProps {
   userType: "farmer" | "customer"
 }
 
 export function LoginForm({ userType }: LoginFormProps) {
+  const { t } = useTranslations()
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
@@ -43,7 +45,7 @@ export function LoginForm({ userType }: LoginFormProps) {
       const data = await response.json()
 
       if (!response.ok) {
-        setError(data.error || "Login failed")
+        setError(data.error || t("common.error"))
         return
       }
 
@@ -66,7 +68,7 @@ export function LoginForm({ userType }: LoginFormProps) {
         window.location.href = data.user.role === "FARMER" ? "/farmer/dashboard" : "/customer/shop"
       }
     } catch (err) {
-      setError("Network error. Please try again.")
+      setError(t("common.error"))
     } finally {
       setIsLoading(false)
     }
@@ -75,7 +77,7 @@ export function LoginForm({ userType }: LoginFormProps) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Sign In</CardTitle>
+        <CardTitle>{t("auth.login")}</CardTitle>
         <CardDescription>Enter your credentials to access your {userType} account</CardDescription>
       </CardHeader>
       <form onSubmit={handleSubmit}>
@@ -86,23 +88,23 @@ export function LoginForm({ userType }: LoginFormProps) {
             </Alert>
           )}
           <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
+            <Label htmlFor="email">{t("auth.email")}</Label>
             <Input
               id="email"
               type="email"
-              placeholder="Enter your email"
+              placeholder={t("auth.email")}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="password">Password</Label>
+            <Label htmlFor="password">{t("auth.password")}</Label>
             <div className="relative">
               <Input
                 id="password"
                 type={showPassword ? "text" : "password"}
-                placeholder="Enter your password"
+                placeholder={t("auth.password")}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
@@ -122,7 +124,7 @@ export function LoginForm({ userType }: LoginFormProps) {
         <CardFooter>
           <Button type="submit" className="w-full" disabled={isLoading}>
             {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Sign In
+            {t("auth.login")}
           </Button>
         </CardFooter>
       </form>

@@ -1,25 +1,30 @@
+"use client"
+
 import { LoginForm } from "@/components/auth/login-form"
 import { Leaf } from "lucide-react"
 import Link from "next/link"
+import { useTranslations } from "@/hooks/useTranslations"
 
 export default function CustomerLoginPage() {
+  const { t } = useTranslations()
+  
   return (
     <div className="min-h-screen flex items-center justify-center" style={{backgroundImage: 'linear-gradient(to bottom right, hsl(var(--secondary)/0.25), hsl(var(--accent)/0.25))'}}>
       <div className="max-w-md w-full space-y-8 p-8">
         <div className="text-center">
           <Link href="/" className="flex items-center justify-center mb-6">
             <Leaf className="h-12 w-12 mr-2" style={{color: 'hsl(var(--primary))'}} />
-            <span className="text-2xl font-bold">AgriSmart</span>
+            <span className="text-2xl font-bold">{t("home.title")}</span>
           </Link>
-          <h2 className="text-3xl font-bold text-gray-900 dark:text-white">Customer Login</h2>
-          <p className="mt-2 text-gray-600 dark:text-gray-400">Shop fresh produce from local farmers</p>
+          <h2 className="text-3xl font-bold text-gray-900 dark:text-white">{t("auth.customerLogin")}</h2>
+          <p className="mt-2 text-gray-600 dark:text-gray-400">{t("common.shopFreshProduce")}</p>
         </div>
         <LoginForm userType="customer" />
         <div className="text-center">
           <p className="text-sm text-gray-600 dark:text-gray-400">
-            Don't have an account?{" "}
+            {t("auth.dontHaveAccount")}{" "}
             <Link href="/auth/customer/register" className="text-blue-600 hover:text-blue-500">
-              Register here
+              {t("auth.registerHere")}
             </Link>
           </p>
         </div>

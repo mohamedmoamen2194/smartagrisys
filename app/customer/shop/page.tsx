@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { ShoppingCart, Search, Filter, Leaf } from "lucide-react"
+import { useTranslations } from "@/hooks/useTranslations"
 
 interface Product {
   id: string
@@ -28,10 +29,21 @@ interface Product {
 }
 
 export default function CustomerShopPage() {
+  const { t, locale } = useTranslations()
   const { addToCart, cartItems, getCartCount, loading } = useCart()
   const [products, setProducts] = useState<Product[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  
+  const getProductName = (product: Product): string => {
+    if (locale === "ar" && (product as any).nameAr) return (product as any).nameAr
+    return (product as any).nameEn || product.name || ""
+  }
+
+  const getProductDescription = (product: Product): string => {
+    if (locale === "ar" && (product as any).descriptionAr) return (product as any).descriptionAr
+    return (product as any).descriptionEn || product.description || ""
+  }
 
   useEffect(() => {
     const fetchProducts = async () => {
@@ -55,21 +67,21 @@ export default function CustomerShopPage() {
   }, [])
 
   if (isLoading) {
-    return <div className="container mx-auto py-6">Loading products...</div>
+    return <div className="container mx-auto py-6">{t("customerShop.loadingProducts")}</div>
   }
 
   if (error) {
-    return <div className="container mx-auto py-6 text-red-500">Error: {error}</div>
+    return <div className="container mx-auto py-6 text-red-500">{t("customerShop.error")}: {error}</div>
   }
 
   return (
     <div className="container px-4 sm:px-6 lg:px-8 mx-auto py-6">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-3xl font-bold tracking-tight">Fresh Produce</h1>
+        <h1 className="text-3xl font-bold tracking-tight">{t("customerShop.title")}</h1>
         <Button asChild>
           <a href="/customer/cart">
             <ShoppingCart className="mr-2 h-4 w-4" />
-            Cart ({getCartCount()})
+            {t("customerShop.cart")} ({getCartCount()})
           </a>
         </Button>
       </div>
@@ -77,11 +89,11 @@ export default function CustomerShopPage() {
       <div className="flex flex-col sm:flex-row gap-4 mb-6">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input placeholder="Search products..." className="pl-10" />
+          <Input placeholder={t("customerShop.searchProducts")} className="pl-10" />
         </div>
         <Button variant="outline">
           <Filter className="mr-2 h-4 w-4" />
-          Filter
+          {t("customerShop.filter")}
         </Button>
       </div>
 
@@ -107,19 +119,19 @@ export default function CustomerShopPage() {
                 />
                 {availableStock <= 0 && (
                   <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-                    <Badge variant="destructive">Out of Stock</Badge>
+                    <Badge variant="destructive">{t("customerShop.outOfStock")}</Badge>
                   </div>
                 )}
               </div>
               <CardHeader className="pb-2">
                 <div className="flex items-start justify-between">
                   <div>
-                    <CardTitle className="text-lg">{product.name}</CardTitle>
-                    <CardDescription>{product.description}</CardDescription>
+                    <CardTitle className="text-lg">{getProductName(product)}</CardTitle>
+                    <CardDescription>{getProductDescription(product)}</CardDescription>
                   </div>
                   <Badge variant="outline" className="text-xs">
                     <Leaf className="w-3 h-3 mr-1" />
-                    Fresh
+                    {t("customerShop.fresh")}
                   </Badge>
                 </div>
               </CardHeader>
@@ -127,16 +139,16 @@ export default function CustomerShopPage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <div className="text-2xl font-bold">${product.price}</div>
-                    <div className="text-sm text-muted-foreground">per {product.unit}</div>
+                    <div className="text-sm text-muted-foreground">{t("customerShop.per")} {product.unit}</div>
                   </div>
                   <div className="text-right">
                     <div className="text-sm font-medium">{product.farmer.farmName}</div>
-                    <div className="text-xs text-muted-foreground">Farmer</div>
+                    <div className="text-xs text-muted-foreground">{t("customerShop.farmer")}</div>
                   </div>
                 </div>
                 <div className="text-sm text-muted-foreground mt-2">
-                  {availableStock > 0 ? `${availableStock} ${product.unit} available` : 'Out of stock'}
-                  {inventory && inventory.reservedQty > 0 && ` (${inventory.reservedQty} reserved)`}
+                  {availableStock > 0 ? `${availableStock} ${product.unit} ${t("customerShop.available")}` : t("customerShop.outOfStock")}
+                  {inventory && inventory.reservedQty > 0 && ` (${inventory.reservedQty} ${t("customerShop.reserved")})`}
                 </div>
               </CardContent>
               <CardFooter>
@@ -148,7 +160,7 @@ export default function CustomerShopPage() {
                     availableStock > 0 &&
                     addToCart({
                       id: product.id,
-                      name: product.name,
+                      name: getProductName(product),
                       price: product.price,
                       unit: product.unit,
                       farmer: product.farmer.farmName,
@@ -159,10 +171,10 @@ export default function CustomerShopPage() {
                   {availableStock > 0 ? (
                     <>
                       <ShoppingCart className="mr-2 h-4 w-4" />
-                      {loading ? "Adding..." : "Add to Cart"}
+                      {loading ? t("customerShop.adding") : t("customerShop.addToCart")}
                     </>
                   ) : (
-                    "Out of Stock"
+                    t("customerShop.outOfStock")
                   )}
                 </Button>
               </CardFooter>

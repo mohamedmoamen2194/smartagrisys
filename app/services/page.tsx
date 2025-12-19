@@ -15,116 +15,118 @@ import {
   ArrowRight
 } from "lucide-react"
 import Link from "next/link"
+import { useTranslations } from "@/hooks/useTranslations"
 
 export default function ServicesPage() {
+  const { t } = useTranslations()
   const farmerServices = [
     {
       icon: Brain,
-      title: "AI Disease Detection",
-      description: "Upload images of your crops and get instant disease identification with 89% accuracy. Our MobileNetV2 model can detect various plant diseases and provide treatment recommendations.",
+      title: t("services.aiDiseaseDetection"),
+      description: t("services.aiDiseaseDetectionDesc"),
       features: [
-        "Instant disease identification",
-        "Treatment recommendations",
-        "Prevention strategies",
-        "Historical tracking"
+        t("services.instantDiseaseIdentification"),
+        t("services.treatmentRecommendations"),
+        t("services.preventionStrategies"),
+        t("services.historicalTracking")
       ]
     },
     {
       icon: Sprout,
-      title: "Smart Crop Recommendations",
-      description: "Get personalized crop recommendations based on your soil conditions, weather patterns, and location. Our Random Forest model achieves 92% accuracy in predicting optimal crops.",
+      title: t("services.smartCropRecommendations"),
+      description: t("services.smartCropRecommendationsDesc"),
       features: [
-        "Soil analysis integration",
-        "Weather-based suggestions",
-        "Yield predictions",
-        "Market demand insights"
+        t("services.soilAnalysisIntegration"),
+        t("services.weatherBasedSuggestions"),
+        t("services.yieldPredictions"),
+        t("services.marketDemandInsights")
       ]
     },
     {
       icon: Apple,
-      title: "Fruit Sizing Analysis",
-      description: "Automated fruit sizing and quality assessment to optimize harvest timing and pricing. Make data-driven decisions about when to harvest for maximum value.",
+      title: t("services.fruitSizingAnalysis"),
+      description: t("services.fruitSizingAnalysisDesc"),
       features: [
-        "Automated sizing",
-        "Quality assessment",
-        "Harvest timing",
-        "Pricing optimization"
+        t("services.automatedSizing"),
+        t("services.qualityAssessment"),
+        t("services.harvestTiming"),
+        t("services.pricingOptimization")
       ]
     },
     {
       icon: MessageSquare,
-      title: "AI Chatbot Assistant",
-      description: "Get instant answers to your agricultural questions with our LLM-powered chatbot. Access expert advice 24/7 on farming practices, crop management, and more.",
+      title: t("services.aiChatbotAssistant"),
+      description: t("services.aiChatbotAssistantDesc"),
       features: [
-        "24/7 availability",
-        "Context-aware responses",
-        "Multi-language support",
-        "Expert knowledge base"
+        t("services.availability247"),
+        t("services.contextAwareResponses"),
+        t("services.multilanguageSupport"),
+        t("services.expertKnowledgeBase")
       ]
     },
     {
       icon: Package,
-      title: "Inventory Management",
-      description: "Comprehensive inventory tracking and management system for seamless farm operations. Keep track of your products, stock levels, and sales all in one place.",
+      title: t("services.inventoryManagement"),
+      description: t("services.inventoryManagementDesc"),
       features: [
-        "Real-time inventory tracking",
-        "Stock alerts",
-        "Sales analytics",
-        "Order management"
+        t("services.realtimeInventoryTracking"),
+        t("services.stockAlerts"),
+        t("services.salesAnalytics"),
+        t("services.orderManagement")
       ]
     },
     {
       icon: BarChart3,
-      title: "AI Analysis Dashboard",
-      description: "Real-time analytics and insights to monitor farm performance and make data-driven decisions. Track your progress, identify trends, and optimize operations.",
+      title: t("services.aiAnalysisDashboard"),
+      description: t("services.aiAnalysisDashboardDesc"),
       features: [
-        "Performance metrics",
-        "Trend analysis",
-        "Revenue tracking",
-        "Customizable reports"
+        t("services.performanceMetrics"),
+        t("services.trendAnalysis"),
+        t("services.revenueTracking"),
+        t("services.customizableReports")
       ]
     }
   ]
 
   const customerServices = [
     {
-      title: "Fresh Produce Marketplace",
-      description: "Browse and purchase fresh, quality produce directly from local farmers. All products are verified for quality and freshness.",
+      title: t("services.freshProduceMarketplace"),
+      description: t("services.freshProduceMarketplaceDesc"),
       features: [
-        "Wide variety of products",
-        "Quality guaranteed",
-        "Direct from farm",
-        "Freshness tracking"
+        t("services.wideVarietyOfProducts"),
+        t("services.qualityGuaranteed"),
+        t("services.directFromFarm"),
+        t("services.freshnessTracking")
       ]
     },
     {
-      title: "Secure Payment Processing",
-      description: "Safe and secure payment processing with multiple payment options. Your financial information is protected with industry-standard encryption.",
+      title: t("services.securePaymentProcessing"),
+      description: t("services.securePaymentProcessingDesc"),
       features: [
-        "Multiple payment methods",
-        "Secure transactions",
-        "Payment history",
-        "Refund support"
+        t("services.multiplePaymentMethods"),
+        t("services.secureTransactions"),
+        t("services.paymentHistory"),
+        t("services.refundSupport")
       ]
     },
     {
-      title: "Real-time Order Tracking",
-      description: "Track your orders from placement to delivery. Get real-time updates on order status and estimated delivery times.",
+      title: t("services.realtimeOrderTracking"),
+      description: t("services.realtimeOrderTrackingDesc"),
       features: [
-        "Order status updates",
-        "Delivery tracking",
-        "Estimated delivery times",
-        "Delivery notifications"
+        t("services.orderStatusUpdates"),
+        t("services.deliveryTracking"),
+        t("services.estimatedDeliveryTimes"),
+        t("services.deliveryNotifications")
       ]
     },
     {
-      title: "Fast & Reliable Delivery",
-      description: "Fast and reliable delivery service ensuring your produce arrives fresh. We work with trusted delivery partners to get your orders to you quickly.",
+      title: t("services.fastReliableDelivery"),
+      description: t("services.fastReliableDeliveryDesc"),
       features: [
-        "Fast delivery",
-        "Freshness guarantee",
-        "Delivery scheduling",
-        "Package tracking"
+        t("services.fastDelivery"),
+        t("services.freshnessGuarantee"),
+        t("services.deliveryScheduling"),
+        t("services.packageTracking")
       ]
     }
   ]
@@ -136,10 +138,10 @@ export default function ServicesPage() {
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-4xl mx-auto">
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold mb-6 text-gray-900 dark:text-white">
-              Our <span style={{color: 'hsl(var(--primary))'}}>Services</span>
+              {t("services.title")} <span style={{color: 'hsl(var(--primary))'}}>{t("services.titleHighlight")}</span>
             </h1>
             <p className="text-xl sm:text-2xl text-gray-600 dark:text-gray-300">
-              Comprehensive solutions tailored for both farmers and customers, powered by advanced AI technology
+              {t("services.subtitle")}
             </p>
           </div>
         </div>
@@ -152,12 +154,12 @@ export default function ServicesPage() {
             <div className="flex items-center justify-center gap-4 mb-6">
               <Users className="h-12 w-12 text-green-600 dark:text-green-400" />
               <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-gray-900 dark:text-white">
-                Services for Farmers
+                {t("services.forFarmers")}
               </h2>
             </div>
             <div className="w-24 h-1 bg-primary mx-auto mb-8"></div>
             <p className="text-lg sm:text-xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto">
-              Complete farm management solution with AI-powered tools designed to maximize productivity and efficiency
+              {t("services.forFarmersDesc")}
             </p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-7xl mx-auto">
@@ -188,7 +190,7 @@ export default function ServicesPage() {
           <div className="text-center mt-12">
             <Button size="lg" asChild>
               <Link href="/auth/farmer/register">
-                Get Started as Farmer <ArrowRight className="ml-2 h-5 w-5" />
+                {t("services.getStartedAsFarmer")} <ArrowRight className="ml-2 h-5 w-5" />
               </Link>
             </Button>
           </div>
@@ -202,12 +204,12 @@ export default function ServicesPage() {
             <div className="flex items-center justify-center gap-4 mb-6">
               <ShoppingCart className="h-12 w-12 text-blue-600 dark:text-blue-400" />
               <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-gray-900 dark:text-white">
-                Services for Customers
+                {t("services.forCustomers")}
               </h2>
             </div>
             <div className="w-24 h-1 bg-primary mx-auto mb-8"></div>
             <p className="text-lg sm:text-xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto">
-              Fresh produce marketplace connecting you directly with local farmers for quality guaranteed products
+              {t("services.forCustomersDesc")}
             </p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto">
@@ -235,7 +237,7 @@ export default function ServicesPage() {
           <div className="text-center mt-12">
             <Button size="lg" variant="outline" asChild>
               <Link href="/store">
-                Browse Store <ArrowRight className="ml-2 h-5 w-5" />
+                {t("common.browseStore")} <ArrowRight className="ml-2 h-5 w-5" />
               </Link>
             </Button>
           </div>

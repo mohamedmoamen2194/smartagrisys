@@ -8,6 +8,7 @@ import { Separator } from "@/components/ui/separator"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Package, Truck, CheckCircle, Clock, AlertCircle, MapPin, CreditCard, Calendar } from "lucide-react"
+import { useTranslations } from "@/hooks/useTranslations"
 
 type OrderItem = {
   id: string
@@ -47,6 +48,7 @@ type DashboardStats = {
 }
 
 export default function CustomerOrdersPage() {
+  const { t } = useTranslations()
   const [stats, setStats] = useState<DashboardStats>({
     totalOrders: 0,
     inTransitOrders: 0,
@@ -185,20 +187,20 @@ export default function CustomerOrdersPage() {
   }
 
   if (loading) {
-    return <div className="container mx-auto py-6">Loading orders...</div>
+    return <div className="container mx-auto py-6">{t("customerOrders.loadingOrders")}</div>
   }
 
   return (
     <div className="container mx-auto py-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold tracking-tight">Order History</h1>
-        <Button variant="outline" onClick={() => window.location.reload()}>Refresh</Button>
+        <h1 className="text-3xl font-bold tracking-tight">{t("customerOrders.title")}</h1>
+        <Button variant="outline" onClick={() => window.location.reload()}>{t("customerOrders.refresh")}</Button>
       </div>
 
       {error && (
         <Alert className="mt-6" variant="destructive">
           <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Error</AlertTitle>
+          <AlertTitle>{t("customerOrders.error")}</AlertTitle>
           <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
@@ -206,42 +208,42 @@ export default function CustomerOrdersPage() {
       <div className="grid gap-4 md:grid-cols-4 mt-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Orders</CardTitle>
+            <CardTitle className="text-sm font-medium">{t("customerOrders.totalOrders")}</CardTitle>
             <Package className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.totalOrders}</div>
-            <p className="text-xs text-muted-foreground">All time</p>
+            <p className="text-xs text-muted-foreground">{t("customerOrders.allTime")}</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">In Transit</CardTitle>
+            <CardTitle className="text-sm font-medium">{t("customerOrders.inTransit")}</CardTitle>
             <Truck className="h-4 w-4 text-blue-600" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.inTransitOrders}</div>
-            <p className="text-xs text-muted-foreground">Being delivered</p>
+            <p className="text-xs text-muted-foreground">{t("customerOrders.beingDelivered")}</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Delivered</CardTitle>
+            <CardTitle className="text-sm font-medium">{t("customerOrders.delivered")}</CardTitle>
             <CheckCircle className="h-4 w-4 text-green-600" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.deliveredOrders}</div>
-            <p className="text-xs text-muted-foreground">Successfully delivered</p>
+            <p className="text-xs text-muted-foreground">{t("customerOrders.successfullyDelivered")}</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Spent</CardTitle>
+            <CardTitle className="text-sm font-medium">{t("customerOrders.totalSpent")}</CardTitle>
             <Package className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">${stats.totalSpent.toFixed(2)}</div>
-            <p className="text-xs text-muted-foreground">All time</p>
+            <p className="text-xs text-muted-foreground">{t("customerOrders.allTime")}</p>
           </CardContent>
         </Card>
       </div>
@@ -251,12 +253,12 @@ export default function CustomerOrdersPage() {
           <Card>
             <CardContent className="flex flex-col items-center justify-center py-8">
               <Package className="h-12 w-12 text-muted-foreground mb-4" />
-              <h3 className="text-lg font-medium mb-2">No orders yet</h3>
+              <h3 className="text-lg font-medium mb-2">{t("customerOrders.noOrders")}</h3>
               <p className="text-muted-foreground text-center mb-4">
-                Start shopping to see your order history here
+                {t("customerOrders.startShopping")}
               </p>
               <Button asChild>
-                <a href="/customer/shop">Browse Products</a>
+                <a href="/customer/shop">{t("customerOrders.browseProducts")}</a>
               </Button>
             </CardContent>
           </Card>
@@ -267,7 +269,7 @@ export default function CustomerOrdersPage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <CardTitle className="text-lg">{order.orderNumber}</CardTitle>
-                    <CardDescription>Placed on {formatDate(order.createdAt)}</CardDescription>
+                    <CardDescription>{t("customerOrders.placedOn")} {formatDate(order.createdAt)}</CardDescription>
                   </div>
                   <Badge variant={getStatusVariant(order.status)}>
                     {getStatusIcon(order.status)}
@@ -281,7 +283,7 @@ export default function CustomerOrdersPage() {
                     <div key={item.id} className="flex justify-between items-center">
                       <div>
                         <p className="font-medium">{item.product.name}</p>
-                        <p className="text-sm text-muted-foreground">Quantity: {item.quantity}</p>
+                        <p className="text-sm text-muted-foreground">{t("customerOrders.quantity")}: {item.quantity}</p>
                       </div>
                       <p className="font-medium">${Number(item.total).toFixed(2)}</p>
                     </div>
@@ -289,13 +291,13 @@ export default function CustomerOrdersPage() {
                   <Separator />
                   <div className="flex justify-between items-center">
                     <div>
-                      <p className="text-sm text-muted-foreground">From {order.farmer.farmName}</p>
+                      <p className="text-sm text-muted-foreground">{t("customerOrders.from")} {order.farmer.farmName}</p>
                       <p className="text-sm text-muted-foreground">
-                        Payment: {order.paymentMethod.toUpperCase()}
+                        {t("customerOrders.payment")}: {order.paymentMethod.toUpperCase()}
                       </p>
                     </div>
                     <div className="text-right">
-                      <p className="font-medium">Total: ${Number(order.total).toFixed(2)}</p>
+                      <p className="font-medium">{t("customerOrders.total")}: ${Number(order.total).toFixed(2)}</p>
                     </div>
                   </div>
                   <div className="flex gap-2 pt-2">
@@ -304,7 +306,7 @@ export default function CustomerOrdersPage() {
                       size="sm"
                       onClick={() => handleViewOrder(order)}
                     >
-                      View Details
+                      {t("customerOrders.viewDetails")}
                     </Button>
                     {order.status === "DELIVERED" && (
                       <Button 
@@ -312,7 +314,7 @@ export default function CustomerOrdersPage() {
                         size="sm"
                         onClick={() => handleReorder(order)}
                       >
-                        Reorder
+                        {t("customerOrders.reorder")}
                       </Button>
                     )}
                   </div>
@@ -329,7 +331,7 @@ export default function CustomerOrdersPage() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Package className="h-5 w-5" />
-              Order Details - {selectedOrder?.orderNumber}
+              {t("customerOrders.orderDetails")} - {selectedOrder?.orderNumber}
             </DialogTitle>
           </DialogHeader>
           
@@ -338,7 +340,7 @@ export default function CustomerOrdersPage() {
               {/* Order Status */}
               <div className="flex items-center justify-between p-4 bg-muted rounded-lg">
                 <div>
-                  <p className="font-medium">Order Status</p>
+                  <p className="font-medium">{t("customerOrders.orderStatus")}</p>
                   <p className="text-sm text-muted-foreground">
                     {selectedOrder.status.charAt(0).toUpperCase() + selectedOrder.status.slice(1).toLowerCase()}
                   </p>
@@ -354,14 +356,14 @@ export default function CustomerOrdersPage() {
                 <div className="space-y-2">
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <Calendar className="h-4 w-4" />
-                    Order Date
+                    {t("customerOrders.orderDate")}
                   </div>
                   <p className="font-medium">{formatDateTime(selectedOrder.createdAt)}</p>
                 </div>
                 <div className="space-y-2">
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <CreditCard className="h-4 w-4" />
-                    Payment Method
+                    {t("customerOrders.paymentMethod")}
                   </div>
                   <p className="font-medium">{selectedOrder.paymentMethod.toUpperCase()}</p>
                 </div>
@@ -369,7 +371,7 @@ export default function CustomerOrdersPage() {
 
               {/* Farmer Information */}
               <div className="p-4 bg-muted rounded-lg">
-                <h3 className="font-medium mb-2">Farmer</h3>
+                <h3 className="font-medium mb-2">{t("customerShop.farmer")}</h3>
                 <p className="text-sm">{selectedOrder.farmer.farmName}</p>
               </div>
 
@@ -378,7 +380,7 @@ export default function CustomerOrdersPage() {
                 <div className="p-4 bg-muted rounded-lg">
                   <h3 className="font-medium mb-2 flex items-center gap-2">
                     <MapPin className="h-4 w-4" />
-                    Shipping Address
+                    {t("customerOrders.shippingAddress")}
                   </h3>
                   <div className="text-sm space-y-1">
                     <p>{selectedOrder.shippingAddress.fullName}</p>
@@ -393,14 +395,14 @@ export default function CustomerOrdersPage() {
 
               {/* Order Items */}
               <div>
-                <h3 className="font-medium mb-3">Order Items</h3>
+                <h3 className="font-medium mb-3">{t("customerOrders.orderItems")}</h3>
                 <div className="space-y-3">
                   {selectedOrder.orderItems.map((item) => (
                     <div key={item.id} className="flex justify-between items-center p-3 border rounded-lg">
                       <div>
                         <p className="font-medium">{item.product.name}</p>
                         <p className="text-sm text-muted-foreground">
-                          Quantity: {item.quantity} × ${Number(item.unitPrice).toFixed(2)}
+                          {t("customerOrders.quantity")}: {item.quantity} × ${Number(item.unitPrice).toFixed(2)}
                         </p>
                       </div>
                       <p className="font-medium">${Number(item.total).toFixed(2)}</p>
@@ -413,16 +415,16 @@ export default function CustomerOrdersPage() {
               <div className="border-t pt-4">
                 <div className="space-y-2">
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">Subtotal:</span>
+                    <span className="text-muted-foreground">{t("customerOrders.subtotal")}:</span>
                     <span>${Number(selectedOrder.subtotal).toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">Shipping:</span>
+                    <span className="text-muted-foreground">{t("customerOrders.shipping")}:</span>
                     <span>${Number(selectedOrder.shippingCost).toFixed(2)}</span>
                   </div>
                   <Separator />
                   <div className="flex justify-between font-medium text-lg">
-                    <span>Total:</span>
+                    <span>{t("customerOrders.total")}:</span>
                     <span>${Number(selectedOrder.total).toFixed(2)}</span>
                   </div>
                 </div>
@@ -435,7 +437,7 @@ export default function CustomerOrdersPage() {
                   onClick={() => setShowOrderModal(false)}
                   className="flex-1"
                 >
-                  Close
+                  {t("common.close")}
                 </Button>
                 {selectedOrder.status === "DELIVERED" && (
                   <Button 
@@ -445,7 +447,7 @@ export default function CustomerOrdersPage() {
                     }}
                     className="flex-1"
                   >
-                    Reorder
+                    {t("customerOrders.reorder")}
                   </Button>
                 )}
               </div>

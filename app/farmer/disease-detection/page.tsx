@@ -10,16 +10,18 @@ import { Separator } from "@/components/ui/separator"
 import { Microscope, AlertTriangle, CheckCircle, Camera, ImageIcon } from "lucide-react"
 import { DiseaseImageUploader } from "@/components/disease-image-uploader"
 import { FarmerPageHeader } from "@/components/farmer/page-header"
+import { useTranslations } from "@/hooks/useTranslations"
 
 export default function DiseaseDetectionPage() {
+  const { t } = useTranslations()
   const [result, setResult] = useState<any>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   return (
     <div className="w-full px-4 sm:px-6 lg:px-8 py-6 space-y-4 sm:space-y-6">
       <FarmerPageHeader
-        title="Disease Detection"
-        subtitle="Upload or capture plant images for AI-powered disease analysis"
+        title={t("diseaseDetection.title")}
+        subtitle={t("diseaseDetection.subtitle")}
         actions={<Badge variant="secondary" className="w-fit"><Microscope className="h-3 w-3 mr-1" />AI Powered</Badge>}
       />
 
@@ -29,22 +31,22 @@ export default function DiseaseDetectionPage() {
             <TabsList className="grid w-full grid-cols-2 mb-4">
               <TabsTrigger value="upload" className="text-xs sm:text-sm">
                 <ImageIcon className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-                <span className="hidden sm:inline">Upload Image</span>
-                <span className="sm:hidden">Upload</span>
+                <span className="hidden sm:inline">{t("diseaseDetection.uploadImage")}</span>
+                <span className="sm:hidden">{t("diseaseDetection.upload")}</span>
               </TabsTrigger>
               <TabsTrigger value="camera" className="text-xs sm:text-sm">
                 <Camera className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-                <span className="hidden sm:inline">Use Camera</span>
-                <span className="sm:hidden">Camera</span>
+                <span className="hidden sm:inline">{t("diseaseDetection.useCamera")}</span>
+                <span className="sm:hidden">{t("diseaseDetection.camera")}</span>
               </TabsTrigger>
             </TabsList>
             
             <TabsContent value="upload" className="space-y-4">
               <Card className="shadow-sm">
                 <CardHeader className="pb-3 sm:pb-4">
-                  <CardTitle className="text-lg sm:text-xl">Upload Plant Image</CardTitle>
+                  <CardTitle className="text-lg sm:text-xl">{t("diseaseDetection.uploadPlantImage")}</CardTitle>
                   <CardDescription className="text-sm">
-                    Upload a clear image of your plant leaves for accurate disease detection
+                    {t("diseaseDetection.uploadDescription")}
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -73,7 +75,7 @@ export default function DiseaseDetectionPage() {
 
                   {result.treatment && result.treatment.length > 0 && (
                     <div className="p-4 rounded-lg bg-green-900/10 dark:bg-green-50">
-                      <h4 className="font-semibold text-green-800 dark:text-green-800 mb-2">Treatment Recommendations</h4>
+                      <h4 className="font-semibold text-green-800 dark:text-green-800 mb-2">{t("diseaseDetection.treatmentRecommendations")}</h4>
                       <ul className="text-sm text-green-800/90 dark:text-green-800/90 space-y-1">
                         {result.treatment.map((treatment: string, index: number) => (
                           <li key={index}>• {treatment}</li>
@@ -88,9 +90,9 @@ export default function DiseaseDetectionPage() {
             <TabsContent value="camera" className="space-y-4">
               <Card className="shadow-sm">
                 <CardHeader className="pb-3 sm:pb-4">
-                  <CardTitle className="text-lg sm:text-xl">Capture Image</CardTitle>
+                  <CardTitle className="text-lg sm:text-xl">{t("diseaseDetection.captureImage")}</CardTitle>
                   <CardDescription className="text-sm">
-                    Use your device camera to take a picture of affected plant parts
+                    {t("diseaseDetection.captureDescription")}
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="flex flex-col items-center justify-center">
@@ -99,8 +101,8 @@ export default function DiseaseDetectionPage() {
                   </div>
                   <Button className="w-full sm:w-auto">
                     <Camera className="mr-2 h-4 w-4" /> 
-                    <span className="hidden sm:inline">Capture Image</span>
-                    <span className="sm:hidden">Capture</span>
+                    <span className="hidden sm:inline">{t("diseaseDetection.captureImage")}</span>
+                    <span className="sm:hidden">{t("diseaseDetection.camera")}</span>
                   </Button>
                 </CardContent>
               </Card>
@@ -114,10 +116,10 @@ export default function DiseaseDetectionPage() {
             <CardHeader className="pb-3 sm:pb-4">
               <CardTitle className="text-lg sm:text-xl flex items-center gap-2">
                 <CheckCircle className="h-4 w-4 sm:h-5 sm:w-5 text-green-600" />
-                Analysis Results
+                {t("diseaseDetection.analysisResults")}
               </CardTitle>
               <CardDescription className="text-sm">
-                Disease detection results will appear here
+                {t("diseaseDetection.resultsDescription")}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -125,7 +127,7 @@ export default function DiseaseDetectionPage() {
                 <div className="text-center py-8 sm:py-12">
                   <Microscope className="h-12 w-12 sm:h-16 sm:w-16 text-muted-foreground mx-auto mb-4 animate-spin" />
                   <p className="text-sm text-muted-foreground">
-                    Analyzing image for diseases...
+                    {t("diseaseDetection.analyzing")}
                   </p>
                 </div>
               ) : result ? (
@@ -135,31 +137,31 @@ export default function DiseaseDetectionPage() {
                       {result.disease}
                     </div>
                     <div className="text-green-800/80 dark:text-green-800/80 mb-2">
-                      Confidence: {(result.confidence * 100).toFixed(1)}%
+                      {t("diseaseDetection.confidence")}: {(result.confidence * 100).toFixed(1)}%
                     </div>
                     {result.source && (
                       <div className="text-xs text-muted-foreground">
-                        Source: {result.source === 'mcb_backend' ? 'AI Model' : 'Fallback'}
+                        {t("diseaseDetection.source")}: {result.source === 'mcb_backend' ? t("diseaseDetection.aiModel") : t("diseaseDetection.fallback")}
                       </div>
                     )}
                   </div>
                   
                   {result.reasoning && (
                     <div className="p-4 rounded-lg bg-green-900/10 dark:bg-green-50">
-                      <h4 className="font-semibold text-green-800 dark:text-green-800 mb-2">Analysis Details</h4>
+                      <h4 className="font-semibold text-green-800 dark:text-green-800 mb-2">{t("diseaseDetection.analysisDetails")}</h4>
                       <p className="text-sm text-green-800/90 dark:text-green-800/90">{result.reasoning}</p>
                     </div>
                   )}
                   
                   {result.severity && (
                     <div className="p-4 rounded-lg bg-green-900/10 dark:bg-green-50">
-                      <h4 className="font-semibold text-green-800 dark:text-green-800 mb-2">Severity: {result.severity.toUpperCase()}</h4>
+                      <h4 className="font-semibold text-green-800 dark:text-green-800 mb-2">{t("diseaseDetection.severity")}: {result.severity.toUpperCase()}</h4>
                     </div>
                   )}
                   
                   {result.treatment && result.treatment.length > 0 && (
                     <div className="p-4 rounded-lg bg-green-900/10 dark:bg-green-50">
-                      <h4 className="font-semibold text-green-800 dark:text-green-800 mb-2">Treatment Recommendations</h4>
+                      <h4 className="font-semibold text-green-800 dark:text-green-800 mb-2">{t("diseaseDetection.treatmentRecommendations")}</h4>
                       <ul className="text-sm text-green-800/90 dark:text-green-800/90 space-y-1">
                         {result.treatment.map((treatment: string, index: number) => (
                           <li key={index}>• {treatment}</li>
@@ -170,7 +172,7 @@ export default function DiseaseDetectionPage() {
                   
                   {result.symptoms && result.symptoms.length > 0 && (
                     <div className="p-4 rounded-lg bg-green-900/10 dark:bg-green-50">
-                      <h4 className="font-semibold text-green-800 dark:text-green-800 mb-2">Symptoms</h4>
+                      <h4 className="font-semibold text-green-800 dark:text-green-800 mb-2">{t("diseaseDetection.symptoms")}</h4>
                       <ul className="text-sm text-green-800/90 dark:text-green-800/90 space-y-1">
                         {result.symptoms.map((symptom: string, index: number) => (
                           <li key={index}>• {symptom}</li>
@@ -181,7 +183,7 @@ export default function DiseaseDetectionPage() {
                   
                   {result.nextSteps && result.nextSteps.length > 0 && (
                     <div className="p-4 rounded-lg bg-green-900/10 dark:bg-green-50">
-                      <h4 className="font-semibold text-green-800 dark:text-green-800 mb-2">Next Steps</h4>
+                      <h4 className="font-semibold text-green-800 dark:text-green-800 mb-2">{t("diseaseDetection.nextSteps")}</h4>
                       <ul className="text-sm text-green-800/90 dark:text-green-800/90 space-y-1">
                         {result.nextSteps.map((step: string, index: number) => (
                           <li key={index}>• {step}</li>
@@ -201,7 +203,7 @@ export default function DiseaseDetectionPage() {
                 <div className="text-center py-8 sm:py-12">
                   <Microscope className="h-12 w-12 sm:h-16 sm:w-16 text-muted-foreground mx-auto mb-4" />
                   <p className="text-sm text-muted-foreground">
-                    Upload an image to start disease analysis
+                    {t("diseaseDetection.uploadToStart")}
                   </p>
                 </div>
               )}
@@ -210,13 +212,13 @@ export default function DiseaseDetectionPage() {
 
           <Alert>
             <AlertTriangle className="h-4 w-4" />
-            <AlertTitle className="text-sm sm:text-base">Tips for Best Results</AlertTitle>
+            <AlertTitle className="text-sm sm:text-base">{t("diseaseDetection.tipsForBestResults")}</AlertTitle>
             <AlertDescription className="text-xs sm:text-sm">
               <ul className="mt-2 space-y-1 list-disc list-inside">
-                <li>Use clear, well-lit images</li>
-                <li>Focus on affected plant parts</li>
-                <li>Avoid blurry or dark photos</li>
-                <li>Include multiple angles if possible</li>
+                <li>{t("diseaseDetection.tip1")}</li>
+                <li>{t("diseaseDetection.tip2")}</li>
+                <li>{t("diseaseDetection.tip3")}</li>
+                <li>{t("diseaseDetection.tip4")}</li>
               </ul>
             </AlertDescription>
           </Alert>

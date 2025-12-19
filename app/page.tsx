@@ -16,28 +16,31 @@ import {
 } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
+import { useTranslations } from "@/hooks/useTranslations"
 
 export default function Home() {
+  const { t } = useTranslations()
+  
   const sections = [
     {
-      title: "About Us",
-      description: "Learn about our mission to revolutionize agriculture through AI-powered solutions",
+      title: t("home.aboutUsCard.title"),
+      description: t("home.aboutUsCard.description"),
       icon: Users,
       href: "/about-us",
       image: "/placeholder.jpg",
       color: "bg-green-100 dark:bg-green-900"
     },
     {
-      title: "Our Services",
-      description: "Comprehensive solutions for farmers and customers with cutting-edge technology",
+      title: t("home.servicesCard.title"),
+      description: t("home.servicesCard.description"),
       icon: Package,
       href: "/services",
       image: "/placeholder.jpg",
       color: "bg-blue-100 dark:bg-blue-900"
     },
     {
-      title: "Contact Us",
-      description: "Get in touch with our team for support, questions, or partnership opportunities",
+      title: t("home.contactUsCard.title"),
+      description: t("home.contactUsCard.description"),
       icon: MessageSquare,
       href: "/contact-us",
       image: "/placeholder.jpg",
@@ -48,23 +51,23 @@ export default function Home() {
   const features = [
     {
       icon: Brain,
-      title: "AI Disease Detection",
-      description: "Advanced MobileNetV2 model with 89% accuracy"
+      title: t("home.aiDiseaseDetection"),
+      description: t("home.aiDiseaseDescription")
     },
     {
       icon: Sprout,
-      title: "Smart Crop Recommendations",
-      description: "Random Forest model with 92% accuracy"
+      title: t("home.smartCropRecommendations"),
+      description: t("home.smartCropDescription")
     },
     {
       icon: Apple,
-      title: "Fruit Sizing Analysis",
-      description: "Automated quality assessment"
+      title: t("home.fruitSizingAnalysis"),
+      description: t("home.fruitSizingDescription")
     },
     {
       icon: BarChart3,
-      title: "AI Analytics Dashboard",
-      description: "Real-time insights and performance tracking"
+      title: t("home.aiAnalyticsDashboard"),
+      description: t("home.aiAnalyticsDescription")
     }
   ]
 
@@ -81,32 +84,32 @@ export default function Home() {
                 <Leaf className="h-10 w-10 sm:h-12 sm:w-12" style={{color: 'hsl(var(--primary))'}} />
               </div>
               <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-gray-900 dark:text-white">
-                Agri<span className="" style={{color: 'hsl(var(--primary))'}}>Smart</span>
+                {t("home.title")}
               </h1>
             </div>
             <p className="text-base sm:text-lg font-semibold text-gray-700 dark:text-gray-300 mb-3">
-              A comprehensive solution that is
+              {t("home.subtitle")}
             </p>
             <div className="flex flex-wrap justify-center gap-2 sm:gap-3 mb-6">
-              {['Digital', 'Reliable', 'Consistent', 'Scalable'].map((word) => (
+              {['digital', 'reliable', 'consistent', 'scalable'].map((word) => (
                 <span 
                   key={word}
                   className="px-3 py-1 bg-primary/10 rounded-full text-sm font-medium"
                   style={{color: 'hsl(var(--primary))'}}
                 >
-                  {word}
+                  {t(`home.tags.${word}`)}
                 </span>
               ))}
             </div>
             <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300 max-w-2xl mx-auto mb-6 px-4">
-              Empowering farmers with cutting-edge AI technology to efficiently manage their farms and connect directly with customers through smart agriculture solutions.
+              {t("home.description")}
             </p>
             <div className="flex flex-col sm:flex-row gap-3 justify-center items-center">
               <Button size="default" className="text-sm px-6 py-2" asChild>
-                <Link href="/auth/farmer/register">Get Started as Farmer</Link>
+                <Link href="/auth/farmer/register">{t("home.getStartedAsFarmer")}</Link>
               </Button>
               <Button size="default" variant="outline" className="text-sm px-6 py-2" asChild>
-                <Link href="/store">Browse Store</Link>
+                <Link href="/store">{t("common.browseStore")}</Link>
               </Button>
             </div>
           </div>
@@ -118,11 +121,11 @@ export default function Home() {
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-10">
             <h2 className="text-2xl sm:text-3xl font-bold mb-3 text-gray-900 dark:text-white">
-              Our Features
+              {t("home.ourFeatures")}
             </h2>
             <div className="w-16 h-0.5 bg-primary mx-auto mb-4"></div>
             <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
-              Advanced AI-powered tools designed to maximize productivity and ensure sustainable farming
+              {t("home.featuresDescription")}
             </p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 max-w-6xl mx-auto">
@@ -148,11 +151,11 @@ export default function Home() {
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-10">
             <h2 className="text-2xl sm:text-3xl font-bold mb-3 text-gray-900 dark:text-white">
-              Explore Our Platform
+              {t("home.explorePlatform")}
             </h2>
             <div className="w-16 h-0.5 bg-primary mx-auto mb-4"></div>
             <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
-              Discover more about what we offer and how we can help transform your agricultural operations
+              {t("home.exploreDescription")}
             </p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
@@ -170,7 +173,7 @@ export default function Home() {
                 <CardFooter>
                   <Button asChild className="w-full text-xs" variant="outline" size="sm">
                     <Link href={section.href}>
-                      Learn More <ArrowRight className="ml-2 h-3 w-3" />
+                      {t("home.learnMore")} <ArrowRight className="ml-2 h-3 w-3" />
                     </Link>
                   </Button>
                 </CardFooter>
@@ -184,17 +187,17 @@ export default function Home() {
       <section className="py-12 bg-background">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="text-2xl sm:text-3xl font-bold mb-3 text-gray-900 dark:text-white">
-            Ready to Transform Your Agriculture Experience?
+            {t("home.readyToTransform")}
           </h2>
           <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300 max-w-2xl mx-auto mb-6">
-            Join us today and discover how AgriSmart can revolutionize your farming operations or connect you with fresh, quality produce.
+            {t("home.readyDescription")}
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <Button size="default" className="text-sm px-6 py-2" asChild>
-              <Link href="/auth/farmer/register">Start as Farmer</Link>
+              <Link href="/auth/farmer/register">{t("home.startAsFarmer")}</Link>
             </Button>
             <Button size="default" variant="outline" className="text-sm px-6 py-2" asChild>
-              <Link href="/store">Start Shopping</Link>
+              <Link href="/store">{t("home.startShopping")}</Link>
             </Button>
           </div>
         </div>

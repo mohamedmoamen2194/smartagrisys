@@ -26,10 +26,16 @@ import {
 import { Label } from "@/components/ui/label"
 import { toast } from "sonner"
 import { FarmerPageHeader } from "@/components/farmer/page-header"
+import { useTranslations } from "@/hooks/useTranslations"
 
 interface Product {
   id: string
   name: string
+  nameEn?: string
+  nameAr?: string
+  description?: string
+  descriptionEn?: string
+  descriptionAr?: string
   category: string
   price: number
   unit: string
@@ -57,9 +63,12 @@ interface AddDialogProps {
 type Status = "in-stock" | "low-stock" | "out-of-stock"
 
 function AddDialog({ onAdd }: AddDialogProps) {
-  // Product fields
-  const [name, setName] = useState("")
-  const [description, setDescription] = useState("")
+  const { t } = useTranslations()
+  // Product fields - bilingual
+  const [nameEn, setNameEn] = useState("")
+  const [nameAr, setNameAr] = useState("")
+  const [descriptionEn, setDescriptionEn] = useState("")
+  const [descriptionAr, setDescriptionAr] = useState("")
   const [category, setCategory] = useState("")
   const [price, setPrice] = useState(0)
   const [unit, setUnit] = useState("")
@@ -79,20 +88,20 @@ function AddDialog({ onAdd }: AddDialogProps) {
   }
 
   const handleAdd = async () => {
-    if (!name || !category || !price || !unit) {
-      toast.error("Please fill in all required product fields")
+    if ((!nameEn && !nameAr) || !category || !price || !unit) {
+      toast.error(t("inventory.fillRequiredFields"))
       return
     }
 
     if (quantity <= 0) {
-      toast.error("Quantity must be greater than 0")
+      toast.error(t("inventory.quantityMustBeGreater"))
       return
     }
 
     try {
       setLoading(true)
       const userStr = localStorage.getItem("user")
-      if (!userStr) throw new Error("Please log in again")
+      if (!userStr) throw new Error(t("inventory.pleaseLoginAgain"))
       // First create the product
       const productResponse = await fetch('/api/products', {
         method: 'POST',
@@ -101,8 +110,10 @@ function AddDialog({ onAdd }: AddDialogProps) {
           'Authorization': userStr,
         },
         body: JSON.stringify({
-          name,
-          description,
+          nameEn: nameEn || undefined,
+          nameAr: nameAr || undefined,
+          descriptionEn: descriptionEn || undefined,
+          descriptionAr: descriptionAr || undefined,
           category,
           price,
           unit
@@ -137,9 +148,19 @@ function AddDialog({ onAdd }: AddDialogProps) {
         maxThreshold
       })
       setIsOpen(false)
-      toast.success("Product added to inventory successfully")
+      // Reset form
+      setNameEn("")
+      setNameAr("")
+      setDescriptionEn("")
+      setDescriptionAr("")
+      setCategory("")
+      setPrice(0)
+      setUnit("")
+      setQuantity(0)
+      setImages([])
+      toast.success(t("inventory.productAddedSuccess"))
     } catch (error) {
-      toast.error("Failed to add product to inventory")
+      toast.error(t("inventory.productAddedError"))
     } finally {
       setLoading(false)
     }
@@ -149,58 +170,86 @@ function AddDialog({ onAdd }: AddDialogProps) {
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
         <Button>
-          <Plus className="mr-2 h-4 w-4" /> Add New Item
+          <Plus className="mr-2 h-4 w-4" /> {t("inventory.addNewItem")}
         </Button>
       </DialogTrigger>
-      <DialogContent>
+      <DialogContent className="max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Add New Product to Inventory</DialogTitle>
-          <DialogDescription>Create a new product and add it to your inventory</DialogDescription>
+          <DialogTitle>{t("inventory.addProductToInventory")}</DialogTitle>
+          <DialogDescription>{t("inventory.addProductDescription")}</DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
           <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="name" className="text-right">
-              Product Name
+            <Label htmlFor="nameEn" className="text-right">
+              {t("inventory.productNameEn")}
             </Label>
             <Input
-              id="name"
-              value={name}
-              onChange={(e: ChangeEvent<HTMLInputElement>) => setName(e.target.value)}
+              id="nameEn"
+              value={nameEn}
+              onChange={(e: ChangeEvent<HTMLInputElement>) => setNameEn(e.target.value)}
               className="col-span-3"
+              placeholder="Enter product name in English"
             />
           </div>
           <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="description" className="text-right">
-              Description
+            <Label htmlFor="nameAr" className="text-right">
+              {t("inventory.productNameAr")}
             </Label>
             <Input
-              id="description"
-              value={description}
-              onChange={(e: ChangeEvent<HTMLInputElement>) => setDescription(e.target.value)}
+              id="nameAr"
+              value={nameAr}
+              onChange={(e: ChangeEvent<HTMLInputElement>) => setNameAr(e.target.value)}
               className="col-span-3"
+              placeholder="أدخل اسم المنتج بالعربية"
+              dir="rtl"
+            />
+          </div>
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="descriptionEn" className="text-right">
+              {t("inventory.descriptionEn")}
+            </Label>
+            <Input
+              id="descriptionEn"
+              value={descriptionEn}
+              onChange={(e: ChangeEvent<HTMLInputElement>) => setDescriptionEn(e.target.value)}
+              className="col-span-3"
+              placeholder="Enter description in English"
+            />
+          </div>
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="descriptionAr" className="text-right">
+              {t("inventory.descriptionAr")}
+            </Label>
+            <Input
+              id="descriptionAr"
+              value={descriptionAr}
+              onChange={(e: ChangeEvent<HTMLInputElement>) => setDescriptionAr(e.target.value)}
+              className="col-span-3"
+              placeholder="أدخل الوصف بالعربية"
+              dir="rtl"
             />
           </div>
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="category" className="text-right">
-              Category
+              {t("inventory.category")}
             </Label>
             <Select value={category} onValueChange={setCategory}>
               <SelectTrigger className="col-span-3">
-                <SelectValue placeholder="Select a category" />
+                <SelectValue placeholder={t("inventory.selectCategory")} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="FRUITS">Fruits</SelectItem>
-                <SelectItem value="VEGETABLES">Vegetables</SelectItem>
-                <SelectItem value="GRAINS">Grains</SelectItem>
-                <SelectItem value="HERBS">Herbs</SelectItem>
-                <SelectItem value="DAIRY">Dairy</SelectItem>
-                <SelectItem value="OTHER">Other</SelectItem>
+                <SelectItem value="FRUITS">{t("categories.fruits")}</SelectItem>
+                <SelectItem value="VEGETABLES">{t("categories.vegetables")}</SelectItem>
+                <SelectItem value="GRAINS">{t("categories.grains")}</SelectItem>
+                <SelectItem value="HERBS">{t("categories.herbs")}</SelectItem>
+                <SelectItem value="DAIRY">{t("categories.dairy")}</SelectItem>
+                <SelectItem value="OTHER">{t("categories.other")}</SelectItem>
               </SelectContent>
             </Select>
           </div>
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="price" className="text-right">
-              Price
+              {t("inventory.price")}
             </Label>
             <Input
               id="price"
@@ -213,19 +262,19 @@ function AddDialog({ onAdd }: AddDialogProps) {
           </div>
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="unit" className="text-right">
-              Unit
+              {t("inventory.unit")}
             </Label>
             <Input
               id="unit"
               value={unit}
               onChange={(e: ChangeEvent<HTMLInputElement>) => setUnit(e.target.value)}
-              placeholder="kg, pieces, etc."
+              placeholder={t("inventory.unitPlaceholder")}
               className="col-span-3"
             />
           </div>
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="images" className="text-right">
-              Product Images
+              {t("inventory.productImages")}
             </Label>
             <Input
               id="images"
@@ -238,7 +287,7 @@ function AddDialog({ onAdd }: AddDialogProps) {
           </div>
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="quantity" className="text-right">
-              Initial Quantity
+              {t("inventory.initialQuantity")}
             </Label>
             <Input
               id="quantity"
@@ -250,7 +299,7 @@ function AddDialog({ onAdd }: AddDialogProps) {
           </div>
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="minThreshold" className="text-right">
-              Min Threshold
+              {t("inventory.minThreshold")}
             </Label>
             <Input
               id="minThreshold"
@@ -262,7 +311,7 @@ function AddDialog({ onAdd }: AddDialogProps) {
           </div>
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="maxThreshold" className="text-right">
-              Max Threshold
+              {t("inventory.maxThreshold")}
             </Label>
             <Input
               id="maxThreshold"
@@ -275,10 +324,10 @@ function AddDialog({ onAdd }: AddDialogProps) {
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => setIsOpen(false)}>
-            Cancel
+            {t("common.cancel")}
           </Button>
           <Button onClick={handleAdd} disabled={loading}>
-            {loading ? "Adding..." : "Add to Inventory"}
+            {loading ? t("inventory.adding") : t("inventory.addToInventory")}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -287,6 +336,7 @@ function AddDialog({ onAdd }: AddDialogProps) {
 }
 
 function EditDialog({ item, onSave }: EditDialogProps) {
+  const { t } = useTranslations()
   const [quantity, setQuantity] = useState(item.quantity)
   const [minThreshold, setMinThreshold] = useState(item.minThreshold)
   const [maxThreshold, setMaxThreshold] = useState(item.maxThreshold)
@@ -298,13 +348,15 @@ function EditDialog({ item, onSave }: EditDialogProps) {
       setLoading(true)
       await onSave(item.id, { quantity, minThreshold, maxThreshold })
       setIsOpen(false)
-      toast.success("Inventory updated successfully")
+      toast.success(t("inventory.inventoryUpdatedSuccess"))
     } catch (error) {
-      toast.error("Failed to update inventory")
+      toast.error(t("inventory.inventoryUpdatedError"))
     } finally {
       setLoading(false)
     }
   }
+
+  const productName = item.product.nameEn || item.product.nameAr || item.product.name || ""
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -315,13 +367,13 @@ function EditDialog({ item, onSave }: EditDialogProps) {
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Edit Inventory</DialogTitle>
-          <DialogDescription>Update inventory details for {item.product.name}</DialogDescription>
+          <DialogTitle>{t("inventory.editInventory")}</DialogTitle>
+          <DialogDescription>{t("inventory.updateInventory")} {productName}</DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="quantity" className="text-right">
-              Quantity
+              {t("inventory.quantity")}
             </Label>
             <Input
               id="quantity"
@@ -333,7 +385,7 @@ function EditDialog({ item, onSave }: EditDialogProps) {
           </div>
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="minThreshold" className="text-right">
-              Min Threshold
+              {t("inventory.minThreshold")}
             </Label>
             <Input
               id="minThreshold"
@@ -345,7 +397,7 @@ function EditDialog({ item, onSave }: EditDialogProps) {
           </div>
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="maxThreshold" className="text-right">
-              Max Threshold
+              {t("inventory.maxThreshold")}
             </Label>
             <Input
               id="maxThreshold"
@@ -358,10 +410,10 @@ function EditDialog({ item, onSave }: EditDialogProps) {
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => setIsOpen(false)}>
-            Cancel
+            {t("common.cancel")}
           </Button>
           <Button onClick={handleSave} disabled={loading}>
-            {loading ? "Saving..." : "Save changes"}
+            {loading ? t("inventory.saving") : t("inventory.saveChanges")}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -370,6 +422,7 @@ function EditDialog({ item, onSave }: EditDialogProps) {
 }
 
 export default function InventoryPage() {
+  const { t, locale } = useTranslations()
   const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -380,7 +433,7 @@ export default function InventoryPage() {
       setIsLoading(true)
       const userStr = localStorage.getItem("user")
       if (!userStr) {
-        setError("Please log in again")
+        setError(t("inventory.pleaseLoginAgain"))
         return
       }
 
@@ -395,8 +448,8 @@ export default function InventoryPage() {
       const data = await response.json()
       setInventoryItems(data)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch inventory')
-      toast.error("Failed to fetch inventory")
+      setError(err instanceof Error ? err.message : t("inventory.failedToFetch"))
+      toast.error(t("inventory.failedToFetch"))
     } finally {
       setIsLoading(false)
     }
@@ -461,7 +514,7 @@ export default function InventoryPage() {
   }
 
   const handleDeleteInventory = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this inventory item?')) {
+    if (!confirm(t("inventory.deleteConfirm"))) {
       return
     }
 
@@ -483,10 +536,10 @@ export default function InventoryPage() {
       }
 
       await fetchInventory()
-      toast.success("Inventory item deleted successfully")
+      toast.success(t("inventory.inventoryDeletedSuccess"))
     } catch (error) {
       console.error('Error deleting inventory:', error)
-      toast.error("Failed to delete inventory item")
+      toast.error(t("inventory.inventoryDeletedError"))
     }
   }
 
@@ -496,18 +549,35 @@ export default function InventoryPage() {
     return "in-stock"
   }
 
+  const getStatusLabel = (status: Status): string => {
+    switch (status) {
+      case "in-stock":
+        return t("inventory.inStockStatus")
+      case "low-stock":
+        return t("inventory.lowStockStatus")
+      case "out-of-stock":
+        return t("inventory.outOfStockStatus")
+    }
+  }
+
+  const getProductName = (product: Product): string => {
+    if (locale === "ar" && product.nameAr) return product.nameAr
+    return product.nameEn || product.name || ""
+  }
+
   const filteredItems = searchQuery
-    ? inventoryItems.filter(item =>
-        item.product.name.toLowerCase().includes(searchQuery.toLowerCase())
-      )
+    ? inventoryItems.filter(item => {
+        const name = getProductName(item.product)
+        return name.toLowerCase().includes(searchQuery.toLowerCase())
+      })
     : inventoryItems
 
   if (isLoading) {
-    return <div className="w-full px-4 sm:px-6 lg:px-8 py-6">Loading inventory...</div>
+    return <div className="w-full px-4 sm:px-6 lg:px-8 py-6">{t("common.loading")}</div>
   }
 
   if (error) {
-    return <div className="w-full px-4 sm:px-6 lg:px-8 py-6 text-red-500">Error: {error}</div>
+    return <div className="w-full px-4 sm:px-6 lg:px-8 py-6 text-red-500">{t("common.error")}: {error}</div>
   }
 
   const totalQuantity = inventoryItems.reduce((sum, item) => sum + item.quantity, 0)
@@ -517,60 +587,60 @@ export default function InventoryPage() {
 
   return (
     <div className="w-full px-4 sm:px-6 lg:px-8 py-6">
-      <FarmerPageHeader title="Inventory Management" actions={<AddDialog onAdd={handleAddInventory} />} />
+      <FarmerPageHeader title={t("inventory.title")} actions={<AddDialog onAdd={handleAddInventory} />} />
 
       <div className="grid gap-4 md:grid-cols-4 mt-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Products</CardTitle>
+            <CardTitle className="text-sm font-medium">{t("inventory.totalProducts")}</CardTitle>
             <Package className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{totalQuantity}</div>
-            <p className="text-xs text-muted-foreground">total inventory items</p>
+            <p className="text-xs text-muted-foreground">{t("inventory.totalInventoryItems")}</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">In Stock</CardTitle>
+            <CardTitle className="text-sm font-medium">{t("inventory.inStock")}</CardTitle>
             <Package className="h-4 w-4 text-green-600" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{inStockCount}</div>
-            <p className="text-xs text-muted-foreground">products available</p>
+            <p className="text-xs text-muted-foreground">{t("inventory.productsAvailable")}</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Low Stock</CardTitle>
+            <CardTitle className="text-sm font-medium">{t("inventory.lowStock")}</CardTitle>
             <Package className="h-4 w-4 text-yellow-600" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{lowStockCount}</div>
-            <p className="text-xs text-muted-foreground">needs restocking</p>
+            <p className="text-xs text-muted-foreground">{t("inventory.needsRestocking")}</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Out of Stock</CardTitle>
+            <CardTitle className="text-sm font-medium">{t("inventory.outOfStock")}</CardTitle>
             <Package className="h-4 w-4 text-red-600" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{outOfStockCount}</div>
-            <p className="text-xs text-muted-foreground">requires immediate attention</p>
+            <p className="text-xs text-muted-foreground">{t("inventory.requiresAttention")}</p>
           </CardContent>
         </Card>
       </div>
 
       <Card className="mt-6">
         <CardHeader>
-          <CardTitle>Inventory Items</CardTitle>
-          <CardDescription>Manage your product inventory and stock levels</CardDescription>
+          <CardTitle>{t("inventory.inventoryItems")}</CardTitle>
+          <CardDescription>{t("inventory.manageInventory")}</CardDescription>
           <div className="flex items-center space-x-2">
             <div className="relative flex-1 max-w-sm">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Search products..."
+                placeholder={t("inventory.searchProducts")}
                 className="pl-10"
                 value={searchQuery}
                 onChange={(e: ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value)}
@@ -583,60 +653,65 @@ export default function InventoryPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Product</TableHead>
-                  <TableHead>Category</TableHead>
-                  <TableHead className="text-right">Quantity</TableHead>
-                  <TableHead className="text-right">Reserved</TableHead>
-                  <TableHead className="text-right">Available</TableHead>
-                  <TableHead className="text-right">Price</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Last Updated</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
+                  <TableHead>{t("inventory.product")}</TableHead>
+                  <TableHead>{t("inventory.category")}</TableHead>
+                  <TableHead className="text-right">{t("inventory.quantity")}</TableHead>
+                  <TableHead className="text-right">{t("inventory.reserved")}</TableHead>
+                  <TableHead className="text-right">{t("inventory.available")}</TableHead>
+                  <TableHead className="text-right">{t("inventory.price")}</TableHead>
+                  <TableHead>{t("inventory.status")}</TableHead>
+                  <TableHead>{t("inventory.lastUpdated")}</TableHead>
+                  <TableHead className="text-right">{t("inventory.actions")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredItems.map((item) => (
-                  <TableRow key={item.id}>
-                    <TableCell className="font-medium">{item.product.name}</TableCell>
-                    <TableCell>{item.product.category}</TableCell>
-                    <TableCell className="text-right">
-                      {item.quantity} {item.product.unit}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      {item.reservedQty} {item.product.unit}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      {item.quantity - item.reservedQty} {item.product.unit}
-                    </TableCell>
-                    <TableCell className="text-right">${item.product.price}</TableCell>
-                    <TableCell>
-                      <Badge
-                        className={
-                          getStatus(item.quantity, item.minThreshold) === "in-stock"
-                            ? "bg-green-500"
-                            : getStatus(item.quantity, item.minThreshold) === "low-stock"
-                              ? "bg-yellow-500"
-                              : "bg-red-500"
-                        }
-                      >
-                        {getStatus(item.quantity, item.minThreshold).replace("-", " ")}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>{new Date(item.lastUpdated).toLocaleDateString()}</TableCell>
-                    <TableCell>
-                      <div className="flex items-center justify-end gap-2">
-                        <EditDialog item={item} onSave={handleUpdateInventory} />
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          onClick={() => handleDeleteInventory(item.id)}
+                {filteredItems.map((item) => {
+                  const status = getStatus(item.quantity, item.minThreshold)
+                  const productName = getProductName(item.product)
+                  const categoryKey = item.product.category.toLowerCase() as "fruits" | "vegetables" | "grains" | "herbs" | "dairy" | "other"
+                  return (
+                    <TableRow key={item.id}>
+                      <TableCell className="font-medium">{productName}</TableCell>
+                      <TableCell>{t(`categories.${categoryKey}`)}</TableCell>
+                      <TableCell className="text-right">
+                        {item.quantity} {item.product.unit}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {item.reservedQty} {item.product.unit}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {item.quantity - item.reservedQty} {item.product.unit}
+                      </TableCell>
+                      <TableCell className="text-right">${item.product.price}</TableCell>
+                      <TableCell>
+                        <Badge
+                          className={
+                            status === "in-stock"
+                              ? "bg-green-500"
+                              : status === "low-stock"
+                                ? "bg-yellow-500"
+                                : "bg-red-500"
+                          }
                         >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                          {getStatusLabel(status)}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>{new Date(item.lastUpdated).toLocaleDateString(locale)}</TableCell>
+                      <TableCell>
+                        <div className="flex items-center justify-end gap-2">
+                          <EditDialog item={item} onSave={handleUpdateInventory} />
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            onClick={() => handleDeleteInventory(item.id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  )
+                })}
               </TableBody>
             </Table>
           </div>

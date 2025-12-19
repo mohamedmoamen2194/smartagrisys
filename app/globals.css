@@ -6,6 +6,62 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
+/* RTL Support */
+[dir="rtl"] {
+  direction: rtl;
+}
+
+[dir="ltr"] {
+  direction: ltr;
+}
+
+/* Arabic font support - use system fonts that support Arabic */
+html[lang="ar"],
+html[dir="rtl"] {
+  font-family: 'Segoe UI', 'Tahoma', 'Arial', 'Noto Sans Arabic', 'Cairo', sans-serif;
+}
+
+/* Ensure Arabic text renders properly */
+[dir="rtl"] {
+  font-family: 'Segoe UI', 'Tahoma', 'Arial', 'Noto Sans Arabic', 'Cairo', sans-serif;
+}
+
+/* RTL layout adjustments */
+[dir="rtl"] .group\/sidebar-wrapper {
+  flex-direction: row-reverse;
+}
+
+/* RTL text alignment */
+[dir="rtl"] {
+  text-align: right;
+}
+
+[dir="ltr"] {
+  text-align: left;
+}
+
+/* RTL flex direction adjustments */
+[dir="rtl"] .flex-row {
+  flex-direction: row-reverse;
+}
+
+/* RTL margin and padding adjustments - be careful with these as they can break layouts */
+/* Use Tailwind's RTL-aware classes (ml-* becomes ms-*, mr-* becomes me-*) when possible */
+
+/* RTL icon positioning - only flip directional icons if needed */
+/* Note: Most icons should not be flipped, only directional arrows */
+
+/* RTL list styles */
+[dir="rtl"] ul[class*="list-disc"] {
+  padding-right: 1.5rem;
+  padding-left: 0;
+}
+
+[dir="rtl"] ol[class*="list-decimal"] {
+  padding-right: 1.5rem;
+  padding-left: 0;
+}
+
 @layer utilities {
   .text-balance {
     text-wrap: balance;

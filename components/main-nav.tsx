@@ -6,12 +6,15 @@ import { usePathname } from "next/navigation"
 import { Leaf, Menu, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { ModeToggle } from "@/components/mode-toggle"
+import { LanguageSwitcher } from "@/components/language-switcher"
+import { useTranslations } from "@/hooks/useTranslations"
 import { cn } from "@/lib/utils"
 
 export function MainNav() {
   const [isScrolled, setIsScrolled] = useState(false)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const pathname = usePathname()
+  const { t } = useTranslations()
 
   // Hide navigation on authenticated pages (farmer/customer routes)
   const isAuthenticatedPage = pathname?.startsWith("/farmer") || pathname?.startsWith("/customer")
@@ -35,12 +38,12 @@ export function MainNav() {
   }
 
   const navItems = [
-    { label: "Home", href: "/" },
-    { label: "About Us", href: "/about-us" },
-    { label: "Services", href: "/services" },
-    { label: "Store", href: "/store" },
-    { label: "Weather & Market", href: "/weather-market" },
-    { label: "Contact Us", href: "/contact-us" },
+    { label: t("common.home"), href: "/" },
+    { label: t("common.aboutUs"), href: "/about-us" },
+    { label: t("common.services"), href: "/services" },
+    { label: t("common.store"), href: "/store" },
+    { label: t("common.weatherMarket"), href: "/weather-market" },
+    { label: t("common.contactUs"), href: "/contact-us" },
   ]
 
   return (
@@ -91,12 +94,13 @@ export function MainNav() {
 
           {/* Right Side - Login and Theme Toggle */}
           <div className="flex items-center gap-2 z-10">
+            <LanguageSwitcher />
             <ModeToggle />
             <Button asChild variant="outline" size="sm" className="text-xs hidden lg:inline-flex">
-              <Link href="/auth/farmer/login">Farmer Login</Link>
+              <Link href="/auth/farmer/login">{t("common.farmerLogin")}</Link>
             </Button>
             <Button asChild size="sm" className="text-xs hidden lg:inline-flex">
-              <Link href="/auth/customer/login">Customer Login</Link>
+              <Link href="/auth/customer/login">{t("common.customerLogin")}</Link>
             </Button>
           </div>
 
@@ -134,14 +138,15 @@ export function MainNav() {
                 </Link>
               ))}
               <div className="flex items-center justify-between pt-2 border-t">
+                <LanguageSwitcher />
                 <ModeToggle />
               </div>
               <div className="flex flex-col gap-2">
                 <Button asChild variant="outline" className="w-full">
-                  <Link href="/auth/farmer/login">Farmer Login</Link>
+                  <Link href="/auth/farmer/login">{t("common.farmerLogin")}</Link>
                 </Button>
                 <Button asChild className="w-full">
-                  <Link href="/auth/customer/login">Customer Login</Link>
+                  <Link href="/auth/customer/login">{t("common.customerLogin")}</Link>
                 </Button>
               </div>
             </div>

@@ -2,8 +2,10 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Cloud, TrendingUp, AlertCircle } from "lucide-react"
+import { useTranslations } from "@/hooks/useTranslations"
 
 export default function WeatherMarketPage() {
+  const { t } = useTranslations()
   return (
     <div className="min-h-screen pt-16 lg:pt-20">
       {/* Hero Section */}
@@ -13,11 +15,11 @@ export default function WeatherMarketPage() {
             <div className="flex items-center justify-center gap-4 mb-6">
               <Cloud className="h-12 w-12" style={{color: 'hsl(var(--primary))'}} />
               <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-gray-900 dark:text-white">
-                Weather & Market <span style={{color: 'hsl(var(--primary))'}}>Insights</span>
+                {t("weatherMarket.title")} <span style={{color: 'hsl(var(--primary))'}}>{t("weatherMarket.titleHighlight")}</span>
               </h1>
             </div>
             <p className="text-xl sm:text-2xl text-gray-600 dark:text-gray-300">
-              Real-time weather forecasts and market demand analysis for informed agricultural decisions
+              {t("weatherMarket.subtitle")}
             </p>
           </div>
         </div>
@@ -32,27 +34,26 @@ export default function WeatherMarketPage() {
                 <div className="mx-auto mb-4 p-4 rounded-full bg-yellow-100 dark:bg-yellow-900 w-fit">
                   <AlertCircle className="h-12 w-12 text-yellow-600 dark:text-yellow-400" />
                 </div>
-                <CardTitle className="text-2xl mb-4">Coming Soon</CardTitle>
+                <CardTitle className="text-2xl mb-4">{t("weatherMarket.comingSoon")}</CardTitle>
                 <CardDescription className="text-lg">
-                  This page is currently under development. We're working on integrating real-time weather data 
-                  and market analysis tools to help you make better farming decisions.
+                  {t("weatherMarket.comingSoonDesc")}
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4 text-center">
                   <div>
-                    <h3 className="font-semibold text-lg mb-2">Planned Features:</h3>
+                    <h3 className="font-semibold text-lg mb-2">{t("weatherMarket.plannedFeatures")}</h3>
                     <ul className="space-y-2 text-gray-600 dark:text-gray-300">
-                      <li>• Real-time weather forecasts</li>
-                      <li>• Market demand analysis for crops</li>
-                      <li>• Price trends and predictions</li>
-                      <li>• Seasonal planting recommendations</li>
-                      <li>• Weather alerts and notifications</li>
+                      <li>• {t("weatherMarket.realtimeWeatherForecasts")}</li>
+                      <li>• {t("weatherMarket.marketDemandAnalysis")}</li>
+                      <li>• {t("weatherMarket.priceTrends")}</li>
+                      <li>• {t("weatherMarket.seasonalPlanting")}</li>
+                      <li>• {t("weatherMarket.weatherAlerts")}</li>
                     </ul>
                   </div>
                   <div className="pt-4">
                     <p className="text-sm text-gray-500 dark:text-gray-400">
-                      Check back soon for updates!
+                      {t("weatherMarket.checkBackSoon")}
                     </p>
                   </div>
                 </div>

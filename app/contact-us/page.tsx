@@ -8,8 +8,10 @@ import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { Mail, Phone, MapPin, Send, CheckCircle2 } from "lucide-react"
 import { toast } from "sonner"
+import { useTranslations } from "@/hooks/useTranslations"
 
 export default function ContactUsPage() {
+  const { t } = useTranslations()
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -38,9 +40,9 @@ export default function ContactUsPage() {
 
       setIsSubmitted(true)
       setFormData({ name: "", email: "", subject: "", message: "" })
-      toast.success("Message sent successfully! We'll get back to you soon.")
+      toast.success(t("contactUs.messageSentSuccess"))
     } catch (error) {
-      toast.error("Failed to send message. Please try again.")
+      toast.error(t("contactUs.messageSentError"))
       console.error("Error sending message:", error)
     } finally {
       setIsSubmitting(false)
@@ -62,9 +64,9 @@ export default function ContactUsPage() {
             <div className="mx-auto mb-4 p-4 rounded-full bg-green-100 dark:bg-green-900 w-fit">
               <CheckCircle2 className="h-12 w-12 text-green-600 dark:text-green-400" />
             </div>
-            <CardTitle className="text-2xl">Message Sent!</CardTitle>
+            <CardTitle className="text-2xl">{t("contactUs.messageSent")}</CardTitle>
             <CardDescription>
-              Thank you for contacting us. We'll get back to you as soon as possible.
+              {t("contactUs.messageSentDesc")}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -72,7 +74,7 @@ export default function ContactUsPage() {
               className="w-full" 
               onClick={() => setIsSubmitted(false)}
             >
-              Send Another Message
+              {t("contactUs.sendAnotherMessage")}
             </Button>
           </CardContent>
         </Card>
@@ -87,10 +89,10 @@ export default function ContactUsPage() {
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-4xl mx-auto">
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold mb-6 text-gray-900 dark:text-white">
-              Contact <span style={{color: 'hsl(var(--primary))'}}>Us</span>
+              {t("contactUs.title")} <span style={{color: 'hsl(var(--primary))'}}>{t("contactUs.titleHighlight")}</span>
             </h1>
             <p className="text-xl sm:text-2xl text-gray-600 dark:text-gray-300">
-              Have questions or want to learn more? We're here to help you get started with AgriSmart.
+              {t("contactUs.subtitle")}
             </p>
           </div>
         </div>
@@ -102,14 +104,14 @@ export default function ContactUsPage() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 max-w-6xl mx-auto">
             {/* Contact Info */}
             <div>
-              <h2 className="text-3xl font-bold mb-8 text-gray-900 dark:text-white">Get in Touch</h2>
+              <h2 className="text-3xl font-bold mb-8 text-gray-900 dark:text-white">{t("contactUs.getInTouch")}</h2>
               <div className="space-y-6">
                 <div className="flex items-start gap-4">
                   <div className="p-3 rounded-lg bg-primary/10">
                     <Mail className="h-6 w-6" style={{color: 'hsl(var(--primary))'}} />
                   </div>
                   <div>
-                    <h3 className="font-semibold text-lg mb-1">Email</h3>
+                    <h3 className="font-semibold text-lg mb-1">{t("contactUs.email")}</h3>
                     <a href="mailto:mohamedmoamen1230@gmail.com" className="text-primary hover:underline">
                       mohamedmoamen1230@gmail.com
                     </a>
@@ -120,9 +122,9 @@ export default function ContactUsPage() {
                     <Phone className="h-6 w-6" style={{color: 'hsl(var(--primary))'}} />
                   </div>
                   <div>
-                    <h3 className="font-semibold text-lg mb-1">Support</h3>
+                    <h3 className="font-semibold text-lg mb-1">{t("contactUs.support")}</h3>
                     <p className="text-gray-600 dark:text-gray-300">
-                      Available Monday - Friday: 9:00 AM - 6:00 PM
+                      {t("contactUs.supportHours")}
                     </p>
                   </div>
                 </div>
@@ -131,9 +133,9 @@ export default function ContactUsPage() {
                     <MapPin className="h-6 w-6" style={{color: 'hsl(var(--primary))'}} />
                   </div>
                   <div>
-                    <h3 className="font-semibold text-lg mb-1">Response Time</h3>
+                    <h3 className="font-semibold text-lg mb-1">{t("contactUs.responseTime")}</h3>
                     <p className="text-gray-600 dark:text-gray-300">
-                      We typically respond within 24-48 hours
+                      {t("contactUs.responseTimeDesc")}
                     </p>
                   </div>
                 </div>
@@ -143,15 +145,15 @@ export default function ContactUsPage() {
             {/* Contact Form */}
             <Card>
               <CardHeader>
-                <CardTitle>Send us a Message</CardTitle>
+                <CardTitle>{t("contactUs.sendUsMessage")}</CardTitle>
                 <CardDescription>
-                  Fill out the form below and we'll get back to you as soon as possible.
+                  {t("contactUs.sendUsMessageDesc")}
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <form onSubmit={handleSubmit} className="space-y-4">
                   <div>
-                    <Label htmlFor="name">Name *</Label>
+                    <Label htmlFor="name">{t("common.name")} *</Label>
                     <Input
                       id="name"
                       name="name"
@@ -159,11 +161,11 @@ export default function ContactUsPage() {
                       required
                       value={formData.name}
                       onChange={handleChange}
-                      placeholder="Your name"
+                      placeholder={t("contactUs.namePlaceholder")}
                     />
                   </div>
                   <div>
-                    <Label htmlFor="email">Email *</Label>
+                    <Label htmlFor="email">{t("common.email")} *</Label>
                     <Input
                       id="email"
                       name="email"
@@ -171,11 +173,11 @@ export default function ContactUsPage() {
                       required
                       value={formData.email}
                       onChange={handleChange}
-                      placeholder="your.email@example.com"
+                      placeholder={t("contactUs.emailPlaceholder")}
                     />
                   </div>
                   <div>
-                    <Label htmlFor="subject">Subject *</Label>
+                    <Label htmlFor="subject">{t("common.subject")} *</Label>
                     <Input
                       id="subject"
                       name="subject"
@@ -183,18 +185,18 @@ export default function ContactUsPage() {
                       required
                       value={formData.subject}
                       onChange={handleChange}
-                      placeholder="What is this regarding?"
+                      placeholder={t("contactUs.subjectPlaceholder")}
                     />
                   </div>
                   <div>
-                    <Label htmlFor="message">Message *</Label>
+                    <Label htmlFor="message">{t("common.message")} *</Label>
                     <Textarea
                       id="message"
                       name="message"
                       required
                       value={formData.message}
                       onChange={handleChange}
-                      placeholder="Your message..."
+                      placeholder={t("contactUs.messagePlaceholder")}
                       rows={6}
                     />
                   </div>
@@ -204,11 +206,11 @@ export default function ContactUsPage() {
                     disabled={isSubmitting}
                   >
                     {isSubmitting ? (
-                      "Sending..."
+                      t("contactUs.sending")
                     ) : (
                       <>
                         <Send className="mr-2 h-4 w-4" />
-                        Send Message
+                        {t("contactUs.sendMessage")}
                       </>
                     )}
                   </Button>

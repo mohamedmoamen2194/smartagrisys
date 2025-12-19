@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Search, Filter, Leaf, LogIn } from "lucide-react"
 import Link from "next/link"
+import { useTranslations } from "@/hooks/useTranslations"
 
 interface Product {
   id: string
@@ -28,6 +29,7 @@ interface Product {
 }
 
 export default function StorePage() {
+  const { t, locale } = useTranslations()
   const [products, setProducts] = useState<Product[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -56,11 +58,21 @@ export default function StorePage() {
     fetchProducts()
   }, [])
 
+  const getProductName = (product: Product): string => {
+    if (locale === "ar" && (product as any).nameAr) return (product as any).nameAr
+    return (product as any).nameEn || product.name || ""
+  }
+
+  const getProductDescription = (product: Product): string => {
+    if (locale === "ar" && (product as any).descriptionAr) return (product as any).descriptionAr
+    return (product as any).descriptionEn || product.description || ""
+  }
+
   if (isLoading) {
     return (
       <div className="min-h-screen pt-16 lg:pt-20">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-20">
-          <div className="text-center">Loading products...</div>
+          <div className="text-center">{t("store.loadingProducts")}</div>
         </div>
       </div>
     )
@@ -70,7 +82,7 @@ export default function StorePage() {
     return (
       <div className="min-h-screen pt-16 lg:pt-20">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-20">
-          <div className="text-center text-red-500">Error: {error}</div>
+          <div className="text-center text-red-500">{t("common.error")}: {error}</div>
         </div>
       </div>
     )
@@ -83,25 +95,25 @@ export default function StorePage() {
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-4xl mx-auto">
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold mb-4 text-gray-900 dark:text-white">
-              Our <span style={{color: 'hsl(var(--primary))'}}>Store</span>
+              {t("store.title")} <span style={{color: 'hsl(var(--primary))'}}>{t("store.titleHighlight")}</span>
             </h1>
             <p className="text-xl sm:text-2xl text-gray-600 dark:text-gray-300">
-              Browse fresh, quality produce directly from local farmers
+              {t("store.subtitle")}
             </p>
             {!isLoggedIn && (
               <div className="mt-6">
                 <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                  Please login to add items to cart and place orders
+                  {t("store.pleaseLoginToAdd")}
                 </p>
                 <div className="flex gap-4 justify-center">
                   <Button asChild>
                     <Link href="/auth/customer/login">
                       <LogIn className="mr-2 h-4 w-4" />
-                      Customer Login
+                      {t("store.customerLogin")}
                     </Link>
                   </Button>
                   <Button asChild variant="outline">
-                    <Link href="/auth/customer/register">Register</Link>
+                    <Link href="/auth/customer/register">{t("store.register")}</Link>
                   </Button>
                 </div>
               </div>
@@ -116,17 +128,17 @@ export default function StorePage() {
           <div className="flex flex-col sm:flex-row gap-4 mb-6">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input placeholder="Search products..." className="pl-10" />
+              <Input placeholder={t("store.searchProducts")} className="pl-10" />
             </div>
             <Button variant="outline">
               <Filter className="mr-2 h-4 w-4" />
-              Filter
+              {t("store.filter")}
             </Button>
           </div>
 
           {products.length === 0 ? (
             <div className="text-center py-12">
-              <p className="text-gray-600 dark:text-gray-400">No products available at the moment.</p>
+              <p className="text-gray-600 dark:text-gray-400">{t("store.noProductsAvailable")}</p>
             </div>
           ) : (
             <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
@@ -158,19 +170,19 @@ export default function StorePage() {
                       />
                       {availableStock <= 0 && (
                         <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-                          <Badge variant="destructive">Out of Stock</Badge>
+                          <Badge variant="destructive">{t("store.outOfStock")}</Badge>
                         </div>
                       )}
                     </div>
                     <CardHeader className="pb-2">
                       <div className="flex items-start justify-between">
                         <div>
-                          <CardTitle className="text-lg">{product.name}</CardTitle>
-                          <CardDescription className="text-sm">{product.description}</CardDescription>
+                          <CardTitle className="text-lg">{getProductName(product)}</CardTitle>
+                          <CardDescription className="text-sm">{getProductDescription(product)}</CardDescription>
                         </div>
                         <Badge variant="outline" className="text-xs">
                           <Leaf className="w-3 h-3 mr-1" />
-                          Fresh
+                          {t("store.fresh")}
                         </Badge>
                       </div>
                     </CardHeader>
@@ -178,16 +190,16 @@ export default function StorePage() {
                       <div className="flex items-center justify-between">
                         <div>
                           <div className="text-2xl font-bold">${product.price}</div>
-                          <div className="text-sm text-muted-foreground">per {product.unit}</div>
+                          <div className="text-sm text-muted-foreground">{t("store.per")} {product.unit}</div>
                         </div>
                         <div className="text-right">
                           <div className="text-sm font-medium">{product.farmer.farmName}</div>
-                          <div className="text-xs text-muted-foreground">Farmer</div>
+                          <div className="text-xs text-muted-foreground">{t("store.farmer")}</div>
                         </div>
                       </div>
                       <div className="text-sm text-muted-foreground mt-2">
-                        {availableStock > 0 ? `${availableStock} ${product.unit} available` : 'Out of stock'}
-                        {inventory && inventory.reservedQty > 0 && ` (${inventory.reservedQty} reserved)`}
+                        {availableStock > 0 ? `${availableStock} ${product.unit} ${t("store.available")}` : t("store.outOfStock")}
+                        {inventory && inventory.reservedQty > 0 && ` (${inventory.reservedQty} ${t("store.reserved")})`}
                       </div>
                     </CardContent>
                     <CardFooter>
@@ -199,7 +211,7 @@ export default function StorePage() {
                           asChild
                         >
                           <Link href="/customer/shop">
-                            {availableStock > 0 ? "View in Shop" : "Out of Stock"}
+                            {availableStock > 0 ? t("store.viewInShop") : t("store.outOfStock")}
                           </Link>
                         </Button>
                       ) : (
@@ -210,7 +222,7 @@ export default function StorePage() {
                         >
                           <Link href="/auth/customer/login">
                             <LogIn className="mr-2 h-4 w-4" />
-                            Login to Order
+                            {t("store.loginToOrder")}
                           </Link>
                         </Button>
                       )}

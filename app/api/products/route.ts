@@ -24,7 +24,11 @@ async function getUserFromRequest() {
 interface ProductWithRelations {
   id: string;
   name: string;
+  nameEn?: string | null;
+  nameAr?: string | null;
   description: string | null;
+  descriptionEn?: string | null;
+  descriptionAr?: string | null;
   category: string;
   price: number;
   unit: string;
@@ -135,13 +139,23 @@ export async function POST(request: Request) {
     }
 
     const data = await request.json();
-    const { name, description, category, price, unit } = data;
+    const { name, nameEn, nameAr, description, descriptionEn, descriptionAr, category, price, unit } = data;
+
+    // Use bilingual fields if provided, otherwise fall back to name/description
+    const finalNameEn = nameEn || name || '';
+    const finalNameAr = nameAr || '';
+    const finalDescriptionEn = descriptionEn || description || null;
+    const finalDescriptionAr = descriptionAr || null;
 
     // Create the product
     const product = await prisma.product.create({
       data: {
-        name,
-        description,
+        name: finalNameEn, // Keep for backward compatibility
+        nameEn: finalNameEn,
+        nameAr: finalNameAr || null,
+        description: finalDescriptionEn, // Keep for backward compatibility
+        descriptionEn: finalDescriptionEn,
+        descriptionAr: finalDescriptionAr,
         category,
         price,
         unit,

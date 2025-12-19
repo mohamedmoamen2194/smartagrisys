@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { AlertCircle } from "lucide-react"
 import { FarmerDashboardSections } from "@/components/farmer/dashboard-sections"
 import { FarmerPageHeader } from "@/components/farmer/page-header"
+import { useTranslations } from "@/hooks/useTranslations"
 
 type DashboardStats = {
   totalRevenue: number;
@@ -19,6 +20,7 @@ type DashboardStats = {
 };
 
 export default function FarmerDashboardPage() {
+  const { t, locale } = useTranslations()
   const [stats, setStats] = useState<DashboardStats>({
     totalRevenue: 0,
     totalOrders: 0,
@@ -62,18 +64,16 @@ export default function FarmerDashboardPage() {
     fetchStats();
   }, []);
 
-  const inferredLocale: "en" | "ar" = typeof window !== "undefined" && (document?.documentElement?.lang?.startsWith("ar") || navigator?.language?.startsWith("ar")) ? "ar" : "en"
-
   return (
     <div className="w-full px-4 sm:px-6 lg:px-8 py-6">
-      <FarmerPageHeader title="Farmer Dashboard" />
+      <FarmerPageHeader title={t("farmer.dashboard")} />
 
       <FarmerDashboardSections
         stats={stats}
         loading={loading}
         error={error}
         onRefresh={() => window.location.reload()}
-        locale={inferredLocale}
+        locale={locale}
       />
     </div>
   );
