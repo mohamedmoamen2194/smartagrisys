@@ -1,6 +1,6 @@
 import type React from "react"
 import type { Metadata } from "next"
-import { Inter } from "next/font/google"
+import { Poppins } from "next/font/google"
 import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
 import { Toaster } from "sonner"
@@ -8,7 +8,7 @@ import { MainNav } from "@/components/main-nav"
 import { TranslationProvider } from "@/hooks/useTranslations"
 import { HtmlLangDir } from "@/components/html-lang-dir"
 
-const inter = Inter({ subsets: ["latin"] })
+const poppins = Poppins({ subsets: ["latin"], weight: ['400'] })
 
 export const metadata: Metadata = {
   title: "Smart Agriculture System",
@@ -19,6 +19,9 @@ export const metadata: Metadata = {
     initialScale: 1,
     maximumScale: 1,
   },
+  icons: {
+    icon: '/img.svg',
+  },
 }
 
 export default function RootLayout({
@@ -28,7 +31,7 @@ export default function RootLayout({
 }>) {
   return (
     <html suppressHydrationWarning>
-      <body className={`${inter.className} antialiased`}>
+      <body className={`${poppins.className} antialiased`}>
         <TranslationProvider>
           <HtmlLangDir />
           <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>

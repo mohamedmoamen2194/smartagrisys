@@ -3,7 +3,6 @@
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { 
-  Leaf, 
   Brain, 
   Sprout, 
   Apple, 
@@ -79,17 +78,9 @@ export default function Home() {
         <div className="absolute inset-0 bg-grid-pattern opacity-5"></div>
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-20 relative z-10">
           <div className="text-center">
-            <div className="flex flex-col sm:flex-row items-center justify-center mb-4 gap-3">
-              <div className="p-3 rounded-full bg-primary/10 animate-pulse">
-                <Leaf className="h-10 w-10 sm:h-12 sm:w-12" style={{color: 'hsl(var(--primary))'}} />
-              </div>
-              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-gray-900 dark:text-white">
-                {t("home.title")}
-              </h1>
+            <div className="flex items-center justify-center mb-4">
+              <img src="/img.svg" alt="Logo" className="h-80 w-80 sm:h-84 sm:w-84" />
             </div>
-            <p className="text-base sm:text-lg font-semibold text-gray-700 dark:text-gray-300 mb-3">
-              {t("home.subtitle")}
-            </p>
             <div className="flex flex-wrap justify-center gap-2 sm:gap-3 mb-6">
               {['digital', 'reliable', 'consistent', 'scalable'].map((word) => (
                 <span 

@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Leaf, Menu, X } from "lucide-react"
+import { Menu, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { ModeToggle } from "@/components/mode-toggle"
 import { LanguageSwitcher } from "@/components/language-switcher"
@@ -62,12 +62,7 @@ export function MainNav() {
             href="/"
             className="flex items-center gap-1.5 sm:gap-2 hover:opacity-80 transition-opacity z-10"
           >
-            <div className="p-1.5 rounded-lg bg-primary/10">
-              <Leaf className="h-5 w-5 sm:h-6 sm:w-6" style={{ color: "hsl(var(--primary))" }} />
-            </div>
-            <span className="text-base sm:text-lg font-bold text-gray-900 dark:text-white">
-              Agri<span style={{ color: "hsl(var(--primary))" }}>Smart</span>
-            </span>
+            <img src="/image_text.svg" alt="Logo" className="h-20 w-50 sm:h-20 sm:w-40" />
           </Link>
 
           {/* Desktop Navigation - Centered */}
