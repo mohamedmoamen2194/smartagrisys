@@ -1,9 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/database';
 import { headers } from 'next/headers';
-import { writeFile, mkdir } from 'fs/promises';
-import { join } from 'path';
-import { existsSync } from 'fs';
+import { put } from '@vercel/blob';
 
 async function getUserFromRequest() {
   try {
@@ -26,7 +24,7 @@ async function getUserFromRequest() {
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
     const user = await getUserFromRequest();
@@ -42,7 +40,7 @@ export async function POST(
       return NextResponse.json({ error: 'Farmer profile not found' }, { status: 404 });
     }
 
-    const { id } = await params;
+    const { id } = params;
 
     // Check if the product exists and belongs to this farmer
     const product = await prisma.product.findUnique({
@@ -63,12 +61,6 @@ export async function POST(
       return NextResponse.json({ error: 'No images provided' }, { status: 400 });
     }
 
-    // Create uploads directory if it doesn't exist
-    const uploadsDir = join(process.cwd(), 'public', 'uploads', 'products');
-    if (!existsSync(uploadsDir)) {
-      await mkdir(uploadsDir, { recursive: true });
-    }
-
     const savedImages = [];
 
     for (let i = 0; i < files.length; i++) {
@@ -78,20 +70,19 @@ export async function POST(
         continue; // Skip non-image files
       }
 
-      // Generate unique filename
+      // Generate unique filename and upload to Vercel Blob
       const timestamp = Date.now();
       const randomString = Math.random().toString(36).substring(2, 15);
-      const extension = file.name.split('.').pop();
+      const extension = file.name.split('.').pop() || 'bin';
       const filename = `${product.id}-${timestamp}-${randomString}.${extension}`;
-      const filepath = join(uploadsDir, filename);
 
-      // Save file to disk
-      const bytes = await file.arrayBuffer();
-      const buffer = Buffer.from(bytes);
-      await writeFile(filepath, buffer);
+      // Upload file to Vercel Blob storage (publicly accessible)
+      const blob = await put(`products/${filename}`, file, {
+        access: 'public',
+      });
 
-      // Save image record to database
-      const imageUrl = `/uploads/products/${filename}`;
+      // Save image record to database using the Blob URL
+      const imageUrl = blob.url;
       const isPrimary = i === 0; // First image is primary
 
       const savedImage = await prisma.productImage.create({
