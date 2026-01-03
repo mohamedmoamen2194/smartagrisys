@@ -1,45 +1,46 @@
 import { NextRequest, NextResponse } from "next/server"
 
-// MCB Backend Configuration
-const MCB_BACKEND_URL = process.env.MCB_BACKEND_URL || 'http://localhost:8001'
+// AI Backend Configuration (Modal deployment)
+const AI_BACKEND_URL = process.env.AI_BACKEND_URL || 'http://localhost:8000'
 
-// Call MCB backend for crop recommendation
-async function getCropRecommendationFromMCB(features: number[]): Promise<any> {
+// Call Modal deployment for crop recommendation
+async function getCropRecommendationFromModal(features: number[]): Promise<any> {
   try {
-    // Format the features as a natural language query for MCB
     const [nitrogen, phosphorus, potassium, temperature, humidity, ph, rainfall] = features
-    const query = `recommend a crop when nitrogen=${nitrogen}, phosphorus=${phosphorus}, potassium=${potassium}, temperature=${temperature}, humidity=${humidity}, ph=${ph}, rainfall=${rainfall}`
     
-    const response = await fetch(`${MCB_BACKEND_URL}/mcb/ask`, {
+    const response = await fetch(`${AI_BACKEND_URL}/crop/recommend`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        message: query,
-        user_id: `crop_rec_${Date.now()}`,
-        user_type: 'farmer'
+        features: {
+          N: nitrogen,
+          P: phosphorus,
+          K: potassium,
+          temperature: temperature,
+          humidity: humidity,
+          ph: ph,
+          rainfall: rainfall
+        }
       })
     })
 
     if (!response.ok) {
-      throw new Error(`MCB Backend error: ${response.status}`)
+      throw new Error(`Local model error: ${response.status}`)
     }
 
-    const textResponse = await response.text()
+    const data = await response.json()
+    const recommendedCrop = data.crop || 'rice'
     
-    // Try to extract crop name from the response
-    const cropMatch = textResponse.match(/(?:recommended|crop|suggest|plant)\s+(?:is\s+)?([a-zA-Z]+)/i)
-    const recommendedCrop = cropMatch ? cropMatch[1].toLowerCase() : 'rice' // fallback
-    
-    return {
-      recommendedCrop,
-      confidence: 0.95,
-      reasoning: textResponse,
-      source: 'mcb_backend'
-    }
+      return {
+        recommendedCrop,
+        confidence: 0.95,
+        reasoning: `Based on your soil conditions (N: ${nitrogen}, P: ${phosphorus}, K: ${potassium}, pH: ${ph}) and weather (${temperature}°C, ${humidity}% humidity, ${rainfall}mm rainfall), ${recommendedCrop} is the optimal choice.`,
+        source: 'modal_deployment'
+      }
   } catch (error) {
-    console.error('MCB Backend connection failed:', error)
+    console.error('Local model connection failed:', error)
     throw error
   }
 }
@@ -87,24 +88,24 @@ export async function POST(request: NextRequest) {
     const features = [nitrogen, phosphorus, potassium, temperature, humidity, ph, rainfall]
     
     try {
-      // Try to get recommendation from MCB backend first
-      const mcbResult = await getCropRecommendationFromMCB(features)
+      // Try to get recommendation from Modal deployment
+      const modelResult = await getCropRecommendationFromModal(features)
       
       // Enhance the response with additional context
       const enhancedResponse = {
-        recommendedCrop: mcbResult.recommendedCrop,
-        confidence: mcbResult.confidence,
-        reasoning: mcbResult.reasoning,
-        alternatives: getAlternativeCrops(mcbResult.recommendedCrop, { nitrogen, phosphorus, potassium, temperature, humidity, ph, rainfall }),
-        careInstructions: getCareInstructions(mcbResult.recommendedCrop),
-        source: mcbResult.source
+        recommendedCrop: modelResult.recommendedCrop,
+        confidence: modelResult.confidence,
+        reasoning: modelResult.reasoning,
+        alternatives: getAlternativeCrops(modelResult.recommendedCrop, { nitrogen, phosphorus, potassium, temperature, humidity, ph, rainfall }),
+        careInstructions: getCareInstructions(modelResult.recommendedCrop),
+        source: modelResult.source
       }
 
       return NextResponse.json(enhancedResponse)
-    } catch (mcbError) {
-      console.warn("MCB backend unavailable, using fallback:", mcbError)
+    } catch (modelError) {
+      console.warn("Modal deployment unavailable, using fallback:", modelError)
       
-      // Fallback to local prediction if MCB is unavailable
+      // Fallback to rule-based prediction if model is unavailable
       const recommendedCrop = predictCropFallback(features)
       
       const fallbackResponse = {

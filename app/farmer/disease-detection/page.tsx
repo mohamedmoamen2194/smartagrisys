@@ -141,7 +141,7 @@ export default function DiseaseDetectionPage() {
                     </div>
                     {result.source && (
                       <div className="text-xs text-muted-foreground">
-                        {t("diseaseDetection.source")}: {result.source === 'mcb_backend' ? t("diseaseDetection.aiModel") : t("diseaseDetection.fallback")}
+                        {t("diseaseDetection.source")}: {result.source === 'local_pipeline' ? t("diseaseDetection.aiModel") : result.source === 'fallback' ? t("diseaseDetection.fallback") : 'Local Pipeline'}
                       </div>
                     )}
                   </div>

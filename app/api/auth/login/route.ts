@@ -4,10 +4,17 @@ import { getUserWithProfile } from "@/lib/database"
 
 export async function POST(request: NextRequest) {
   try {
-    const { email, password, expectedRole } = await request.json()
+    const body = await request.json()
+    const { email, password, expectedRole } = body
 
     if (!email || !password) {
       return NextResponse.json({ error: "Email and password are required" }, { status: 400 })
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(email)) {
+      return NextResponse.json({ error: "Invalid email format" }, { status: 400 })
     }
 
     const user = await authenticateUser(email, password)
@@ -43,6 +50,24 @@ export async function POST(request: NextRequest) {
     })
   } catch (error) {
     console.error("Login error:", error)
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+    
+    // More detailed error logging
+    if (error instanceof Error) {
+      console.error("Error message:", error.message)
+      console.error("Error stack:", error.stack)
+    }
+    
+    // Check if it's a database connection error
+    if (error instanceof Error && error.message.includes("Prisma")) {
+      return NextResponse.json(
+        { error: "Database connection error. Please try again later." },
+        { status: 503 }
+      )
+    }
+    
+    return NextResponse.json(
+      { error: "Internal server error", details: process.env.NODE_ENV === "development" ? (error instanceof Error ? error.message : "Unknown error") : undefined },
+      { status: 500 }
+    )
   }
 }

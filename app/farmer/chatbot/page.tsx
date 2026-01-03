@@ -2,7 +2,7 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { CropRecommendationChatMCB } from "@/components/crop-recommendation-chat-mcb"
+import { CropRecommendationChat } from "@/components/crop-recommendation-chat"
 import { Zap, Bot, Brain } from "lucide-react"
 import { FarmerPageHeader } from "@/components/farmer/page-header"
 import { useTranslations } from "@/hooks/useTranslations"
@@ -85,14 +85,7 @@ export default function ChatbotPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="p-0">
-            <CropRecommendationChatMCB 
-              userType="farmer"
-              userContext={{
-                location: "Farm Location", // You can make this dynamic
-                cropTypes: ["tomato", "corn", "wheat"], // You can get this from user profile
-                farmSize: 10 // You can get this from user profile
-              }}
-            />
+            <CropRecommendationChat />
           </CardContent>
         </Card>
       </div>

@@ -1,8 +1,5 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
   typescript: {
     ignoreBuildErrors: true,
   },
@@ -10,7 +7,7 @@ const nextConfig = {
     unoptimized: true,
   },
   env: {
-    MCB_API_URL: process.env.MCB_API_URL || 'http://localhost:8001',
+    AI_BACKEND_URL: process.env.AI_BACKEND_URL || 'http://localhost:8000',
   },
 }
 

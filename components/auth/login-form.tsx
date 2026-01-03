@@ -115,6 +115,7 @@ export function LoginForm({ userType }: LoginFormProps) {
                 size="icon"
                 className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
                 onClick={() => setShowPassword(!showPassword)}
+                suppressHydrationWarning
               >
                 {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
               </Button>
@@ -122,7 +123,12 @@ export function LoginForm({ userType }: LoginFormProps) {
           </div>
         </CardContent>
         <CardFooter>
-          <Button type="submit" className="w-full" disabled={isLoading}>
+          <Button 
+            type="submit" 
+            className="w-full" 
+            disabled={isLoading}
+            suppressHydrationWarning
+          >
             {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             {t("auth.login")}
           </Button>

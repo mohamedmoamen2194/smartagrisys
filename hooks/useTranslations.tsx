@@ -24,9 +24,12 @@ interface TranslationContextType {
 const TranslationContext = createContext<TranslationContextType | undefined>(undefined)
 
 export function TranslationProvider({ children }: { children: ReactNode }) {
+  // Initialize with 'en' to match server render, then update on client
   const [locale, setLocaleState] = useState<Locale>("en")
+  const [isMounted, setIsMounted] = useState(false)
 
   useEffect(() => {
+    setIsMounted(true)
     // Load locale from localStorage or default to 'en'
     const savedLocale = localStorage.getItem("locale") as Locale
     if (savedLocale && (savedLocale === "en" || savedLocale === "ar")) {

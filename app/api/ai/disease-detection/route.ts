@@ -1,63 +1,29 @@
 import { NextRequest, NextResponse } from "next/server"
 
-// Local Pipeline and MCB Backend Configuration
-const LOCAL_PIPELINE_URL = process.env.LOCAL_PIPELINE_URL || 'http://127.0.0.1:8002'
-const MCB_BACKEND_URL = process.env.MCB_BACKEND_URL || 'http://localhost:8001'
+// AI Backend Configuration (Modal deployment)
+const AI_BACKEND_URL = process.env.AI_BACKEND_URL || 'http://localhost:8000'
 
-// Call local Python pipeline service for disease detection
-async function detectDiseaseFromLocalPipeline(imageFile: File): Promise<any> {
+// Call Modal deployment for disease detection
+async function detectDiseaseFromModal(imageFile: File): Promise<any> {
   const formData = new FormData()
   formData.append('image', imageFile)
-  // Updated to call unified FastAPI service endpoint
-  const response = await fetch(`${LOCAL_PIPELINE_URL}/disease/analyze`, {
+  
+  const response = await fetch(`${AI_BACKEND_URL}/disease/analyze`, {
     method: 'POST',
     body: formData,
   })
+  
   if (!response.ok) {
-    throw new Error(`Local pipeline error: ${response.status}`)
+    throw new Error(`Disease detection error: ${response.status}`)
   }
+  
   const data = await response.json()
   return {
     disease: (data.disease || 'healthy').toString(),
     confidence: typeof data.disease_confidence === 'number' ? data.disease_confidence : 0.9,
     crop: data.crop,
     crop_confidence: data.crop_confidence,
-    source: 'local_pipeline'
-  }
-}
-
-// Call MCB backend for disease detection
-async function detectDiseaseFromMCB(imageFile: File, cropType?: string): Promise<any> {
-  try {
-    const formData = new FormData()
-    formData.append('file', imageFile)
-    formData.append('message', `Please analyze this plant image for diseases${cropType ? ` (crop type: ${cropType})` : ''}`)
-    formData.append('user_id', `disease_det_${Date.now()}`)
-    
-    const response = await fetch(`${MCB_BACKEND_URL}/mcb/diagnose-image`, {
-      method: 'POST',
-      body: formData
-    })
-
-    if (!response.ok) {
-      throw new Error(`MCB Backend error: ${response.status}`)
-    }
-
-    const textResponse = await response.text()
-    
-    // Try to extract disease name from the response
-    const diseaseMatch = textResponse.match(/(?:disease|detected|identified|found)\s+(?:is\s+)?([a-zA-Z_\s]+)/i)
-    const disease = diseaseMatch ? diseaseMatch[1].toLowerCase().trim() : 'healthy'
-    
-    return {
-      disease,
-      confidence: 0.92,
-      reasoning: textResponse,
-      source: 'mcb_backend'
-    }
-  } catch (error) {
-    console.error('MCB Backend connection failed:', error)
-    throw error
+    source: 'modal_deployment'
   }
 }
 
@@ -100,57 +66,38 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Priority 1: Local Python pipeline
+    // Try Modal deployment
     try {
-      const localResult = await detectDiseaseFromLocalPipeline(image)
+      const modalResult = await detectDiseaseFromModal(image)
       const enhancedResponse = {
-        disease: localResult.disease,
-        confidence: localResult.confidence,
-        reasoning: `Detected via local pipeline. Crop: ${localResult.crop} (${(localResult.crop_confidence*100).toFixed(1)}%)`,
-        severity: getDiseaseSeverity(localResult.disease),
-        treatment: getTreatmentRecommendations(localResult.disease, localResult.crop || cropType),
-        prevention: getPreventionTips(localResult.disease),
-        symptoms: getDiseaseSymptoms(localResult.disease),
-        nextSteps: getNextSteps(localResult.disease, localResult.confidence),
-        source: localResult.source
+        disease: modalResult.disease,
+        confidence: modalResult.confidence,
+        reasoning: `Detected via AI model. Crop: ${modalResult.crop} (${(modalResult.crop_confidence*100).toFixed(1)}%)`,
+        severity: getDiseaseSeverity(modalResult.disease),
+        treatment: getTreatmentRecommendations(modalResult.disease, modalResult.crop || cropType),
+        prevention: getPreventionTips(modalResult.disease),
+        symptoms: getDiseaseSymptoms(modalResult.disease),
+        nextSteps: getNextSteps(modalResult.disease, modalResult.confidence),
+        source: modalResult.source
       }
       return NextResponse.json(enhancedResponse)
-    } catch (localError) {
-      console.warn("Local pipeline unavailable, trying MCB backend:", localError)
+    } catch (modalError) {
+      console.warn("Modal deployment unavailable, using fallback:", modalError)
 
-      // Priority 2: MCB backend
-      try {
-        const mcbResult = await detectDiseaseFromMCB(image, cropType)
-        const enhancedResponse = {
-          disease: mcbResult.disease,
-          confidence: mcbResult.confidence,
-          reasoning: mcbResult.reasoning,
-          severity: getDiseaseSeverity(mcbResult.disease),
-          treatment: getTreatmentRecommendations(mcbResult.disease, cropType),
-          prevention: getPreventionTips(mcbResult.disease),
-          symptoms: getDiseaseSymptoms(mcbResult.disease),
-          nextSteps: getNextSteps(mcbResult.disease, mcbResult.confidence),
-          source: mcbResult.source
-        }
-        return NextResponse.json(enhancedResponse)
-      } catch (mcbError) {
-        console.warn("MCB backend unavailable, using fallback:", mcbError)
-
-        // Priority 3: Mock fallback
-        const { disease, confidence } = detectDiseaseFallback(image, cropType)
-        const fallbackResponse = {
-          disease,
-          confidence,
-          reasoning: `Disease analysis completed using fallback prediction. (Note: AI models are temporarily unavailable)`,
-          severity: getDiseaseSeverity(disease),
-          treatment: getTreatmentRecommendations(disease, cropType),
-          prevention: getPreventionTips(disease),
-          symptoms: getDiseaseSymptoms(disease),
-          nextSteps: getNextSteps(disease, confidence),
-          source: 'fallback'
-        }
-        return NextResponse.json(fallbackResponse)
+      // Fallback to rule-based prediction
+      const { disease, confidence } = detectDiseaseFallback(image, cropType)
+      const fallbackResponse = {
+        disease,
+        confidence,
+        reasoning: `Disease analysis completed using fallback prediction. (Note: AI models are temporarily unavailable)`,
+        severity: getDiseaseSeverity(disease),
+        treatment: getTreatmentRecommendations(disease, cropType),
+        prevention: getPreventionTips(disease),
+        symptoms: getDiseaseSymptoms(disease),
+        nextSteps: getNextSteps(disease, confidence),
+        source: 'fallback'
       }
+      return NextResponse.json(fallbackResponse)
     }
   } catch (error) {
     console.error("Disease detection API error:", error)

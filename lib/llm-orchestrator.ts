@@ -72,7 +72,7 @@ export interface ToolResult {
 export const AVAILABLE_TOOLS: Tool[] = [
   {
     name: "get_crop_recommendation",
-    description: "Get crop recommendations based on soil and weather conditions. Use this when users ask about what crops to plant or need planting advice.",
+    description: "Get crop recommendations based on soil and weather conditions. Use this when users provide soil/weather data (even partial data like just temperature). All parameters are optional - defaults will be used for missing values.",
     parameters: {
       type: "object",
       properties: {
@@ -105,7 +105,8 @@ export const AVAILABLE_TOOLS: Tool[] = [
           description: "Rainfall in mm - typically between 20-300" 
         },
       },
-      required: ["nitrogen", "phosphorus", "potassium", "temperature", "humidity", "ph", "rainfall"],
+      // All parameters are optional - defaults will be used if not provided
+      required: [],
     },
   },
   {
@@ -168,15 +169,38 @@ export const AVAILABLE_TOOLS: Tool[] = [
   },
 ]
 
+// Cache for frequent questions
+interface CacheEntry {
+  response: string
+  timestamp: number
+  metadata?: any
+}
+
 // LLM Orchestrator Class
 export class LLMOrchestrator {
   private conversations: Map<string, Conversation> = new Map()
   private apiKey: string
   private baseUrl: string
+  private model: string
+  private cache: Map<string, CacheEntry> = new Map()
+  private cacheTTL: number = 3600000 // 1 hour in milliseconds
 
-  constructor(apiKey: string, baseUrl: string = "https://api.openai.com/v1") {
-    this.apiKey = apiKey
-    this.baseUrl = baseUrl
+  constructor(
+    apiKey?: string, 
+    baseUrl?: string,
+    model?: string
+  ) {
+    // Use environment variables with fallbacks
+    this.apiKey = apiKey || process.env.OPENROUTER_API_KEY || ""
+    this.baseUrl = baseUrl || process.env.OPENROUTER_BASE_URL || "https://openrouter.ai/api/v1"
+    // Default to Meta Llama 3.1 8B (good Arabic support)
+    // Alternative: google/gemma-2-2b-it (faster, lighter)
+    // Note: Free models don't need :free suffix on OpenRouter
+    this.model = model || process.env.LLM_MODEL || "meta-llama/llama-3.1-8b-instruct"
+    
+    if (!this.apiKey) {
+      console.warn("⚠️ OPENROUTER_API_KEY not set. LLM features will not work.")
+    }
   }
 
   // Create or get conversation
@@ -240,9 +264,69 @@ export class LLMOrchestrator {
     return assistantMessage
   }
 
+  // Check cache for frequent questions (skip cache for greetings/short messages)
+  private getCachedResponse(userMessage: string): CacheEntry | null {
+    // Skip cache for greetings and very short messages
+    const normalized = userMessage.toLowerCase().trim()
+    const greetings = ['hi', 'hello', 'hey', 'مرحبا', 'السلام عليكم', 'اهلا', 'اهلا بيك']
+    if (normalized.length < 10 || greetings.includes(normalized)) {
+      return null
+    }
+    
+    const cacheKey = this.generateCacheKey(userMessage)
+    const cached = this.cache.get(cacheKey)
+    
+    if (cached && Date.now() - cached.timestamp < this.cacheTTL) {
+      return cached
+    }
+    
+    if (cached) {
+      this.cache.delete(cacheKey) // Remove expired entry
+    }
+    
+    return null
+  }
+
+  // Generate cache key from message (normalize for similar questions)
+  private generateCacheKey(message: string): string {
+    // Normalize: lowercase, remove extra spaces, remove punctuation
+    return message
+      .toLowerCase()
+      .trim()
+      .replace(/[^\w\s]/g, '')
+      .replace(/\s+/g, ' ')
+  }
+
+  // Store response in cache
+  private setCachedResponse(userMessage: string, response: string, metadata?: any): void {
+    const cacheKey = this.generateCacheKey(userMessage)
+    this.cache.set(cacheKey, {
+      response,
+      timestamp: Date.now(),
+      metadata
+    })
+    
+    // Limit cache size (keep last 100 entries)
+    if (this.cache.size > 100) {
+      const firstKey = this.cache.keys().next().value
+      this.cache.delete(firstKey)
+    }
+  }
+
   // Generate LLM response
   private async generateResponse(conversation: Conversation, userMessage: string): Promise<{ content: string; metadata?: any }> {
     try {
+      // Check cache first
+      const cached = this.getCachedResponse(userMessage)
+      if (cached) {
+        console.log("✅ Using cached response")
+        return { content: cached.response, metadata: cached.metadata }
+      }
+
+      if (!this.apiKey) {
+        throw new Error("OPENROUTER_API_KEY is not configured")
+      }
+
       const messages = this.formatMessagesForLLM(conversation.messages)
       
       const response = await fetch(`${this.baseUrl}/chat/completions`, {
@@ -250,43 +334,75 @@ export class LLMOrchestrator {
         headers: {
           "Content-Type": "application/json",
           "Authorization": `Bearer ${this.apiKey}`,
+          "HTTP-Referer": process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000",
+          "X-Title": "SmartAgriSys",
         },
         body: JSON.stringify({
-          model: "gpt-4o-mini",
+          model: this.model,
           messages,
           tools: AVAILABLE_TOOLS,
-          tool_choice: "auto",
+          tool_choice: "auto", // Let model decide, but system prompt should prevent unnecessary tool usage
           temperature: 0.7,
-          max_tokens: 1000,
+          max_tokens: 2000, // Increased for Arabic responses
         }),
       })
 
       if (!response.ok) {
-        throw new Error(`LLM API error: ${response.status}`)
+        const errorText = await response.text().catch(() => 'Unable to read error response')
+        console.error(`OpenRouter API error (${response.status}):`, errorText)
+        console.error(`Request URL: ${this.baseUrl}/chat/completions`)
+        console.error(`API Key present: ${!!this.apiKey}`)
+        console.error(`API Key prefix: ${this.apiKey?.substring(0, 10)}...`)
+        throw new Error(`LLM API error: ${response.status} - ${errorText.substring(0, 200)}`)
       }
 
       const data = await response.json()
       const choice = data.choices[0]
       
-      // Handle tool calls if present
-      if (choice.message.tool_calls) {
+      // Check if content contains raw JSON tool call (model incorrectly formatted it)
+      let content = choice.message.content || ""
+      if (content.trim().startsWith('{') && content.includes('"name"') && content.includes('"parameters"')) {
+        console.warn("Model returned tool call JSON in content instead of using tool_calls. Ignoring and responding naturally.")
+        // Don't try to parse it - just respond that we need more information
+        content = "I understand you're asking about agricultural data. Could you please provide more specific details or rephrase your question?"
+      }
+      
+      // Handle tool calls if present (proper format)
+      if (choice.message.tool_calls && Array.isArray(choice.message.tool_calls) && choice.message.tool_calls.length > 0) {
         const toolResults = await this.executeToolCalls(choice.message.tool_calls)
+        
+        // Store the tool_calls for the final response
+        const toolCalls = choice.message.tool_calls
         
         // Generate final response with tool results
         const finalResponse = await this.generateFinalResponse(
           conversation,
           userMessage,
-          choice.message.content,
-          toolResults
+          content,
+          toolResults,
+          toolCalls
         )
+        
+        const metadata = { toolCalls: choice.message.tool_calls, toolResults }
+        
+        // Cache the response (only for non-greetings)
+        this.setCachedResponse(userMessage, finalResponse, metadata)
         
         return {
           content: finalResponse,
-          metadata: { toolCalls: choice.message.tool_calls, toolResults },
+          metadata,
         }
       }
       
-      return { content: choice.message.content }
+      // No tool calls - return direct response
+      if (!content) {
+        content = "I'm here to help with your agricultural questions. How can I assist you?"
+      }
+      
+      // Cache the response
+      this.setCachedResponse(userMessage, content)
+      
+      return { content }
     } catch (error) {
       console.error("Error generating LLM response:", error)
       return {
@@ -337,27 +453,34 @@ export class LLMOrchestrator {
   // Tool implementations
   private async getCropRecommendation(args: any): Promise<any> {
     try {
-      // Extract parameters and create features array
-      const { nitrogen, phosphorus, potassium, temperature, humidity, ph, rainfall } = args
+      // Extract parameters with defaults for missing values
+      const {
+        nitrogen = 50,        // Default: medium nitrogen
+        phosphorus = 50,      // Default: medium phosphorus  
+        potassium = 50,       // Default: medium potassium
+        temperature = 25,     // Default: moderate temperature
+        humidity = 60,        // Default: moderate humidity
+        ph = 6.5,             // Default: neutral pH
+        rainfall = 100,       // Default: moderate rainfall
+      } = args
       
-      // Validate all required parameters are present
-      const requiredParams = [nitrogen, phosphorus, potassium, temperature, humidity, ph, rainfall]
-      if (requiredParams.some(param => param === undefined || param === null)) {
-        return { error: "All soil and weather parameters are required" }
+      // Use provided values, defaults for missing ones
+      const finalArgs = {
+        nitrogen: Number(nitrogen),
+        phosphorus: Number(phosphorus),
+        potassium: Number(potassium),
+        temperature: Number(temperature),
+        humidity: Number(humidity),
+        ph: Number(ph),
+        rainfall: Number(rainfall),
       }
 
-      const response = await fetch("/api/ai/crop-recommendation", {
+      // Use absolute URL for server-side fetch
+      const apiBaseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"
+      const response = await fetch(`${apiBaseUrl}/api/ai/crop-recommendation`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          nitrogen: Number(nitrogen),
-          phosphorus: Number(phosphorus),
-          potassium: Number(potassium),
-          temperature: Number(temperature),
-          humidity: Number(humidity),
-          ph: Number(ph),
-          rainfall: Number(rainfall),
-        }),
+        body: JSON.stringify(finalArgs),
       })
       
       if (!response.ok) {
@@ -446,73 +569,116 @@ export class LLMOrchestrator {
     conversation: Conversation,
     userMessage: string,
     initialResponse: string,
-    toolResults: ToolResult[]
+    toolResults: ToolResult[],
+    toolCalls: any[]
   ): Promise<string> {
     try {
-      const messages = [
-        ...this.formatMessagesForLLM(conversation.messages),
-        {
-          role: "assistant" as const,
-          content: initialResponse,
-          tool_calls: toolResults.map(r => ({ id: r.toolCallId, result: r.result })),
-        },
-        {
-          role: "tool" as const,
-          content: JSON.stringify(toolResults),
-        },
-      ]
+      // Format messages for OpenRouter API with tool calls
+      const messages = this.formatMessagesForLLM(conversation.messages)
+      
+      // Add assistant message with tool_calls
+      const assistantMessage: any = {
+        role: "assistant",
+        content: initialResponse || null,
+        tool_calls: toolCalls, // Use the original tool_calls from the API response
+      }
+      
+      messages.push(assistantMessage)
+      
+      // Add tool response messages (OpenRouter/OpenAI format)
+      toolResults.forEach((tr) => {
+        messages.push({
+          role: "tool",
+          content: JSON.stringify(tr.result),
+          tool_call_id: tr.toolCallId,
+        })
+      })
 
       const response = await fetch(`${this.baseUrl}/chat/completions`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           "Authorization": `Bearer ${this.apiKey}`,
+          "HTTP-Referer": process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000",
+          "X-Title": "SmartAgriSys",
         },
         body: JSON.stringify({
-          model: "gpt-4o-mini",
+          model: this.model,
           messages,
           temperature: 0.7,
-          max_tokens: 1000,
+          max_tokens: 2000, // Increased for Arabic responses
         }),
       })
 
-      if (!response.ok) throw new Error("LLM API error")
+      if (!response.ok) {
+        const errorText = await response.text().catch(() => 'Unable to read error response')
+        console.error(`Error generating final response (${response.status}):`, errorText)
+        throw new Error("LLM API error")
+      }
 
       const data = await response.json()
-      return data.choices[0].message.content
+      return data.choices[0].message.content || "I've processed your request. Here are the results."
     } catch (error) {
       console.error("Error generating final response:", error)
-      return initialResponse
+      // Return a summary based on tool results if available
+      if (toolResults.length > 0) {
+        const firstResult = toolResults[0].result
+        if (firstResult && !firstResult.error) {
+          return `Based on the analysis: ${JSON.stringify(firstResult, null, 2)}`
+        }
+      }
+      return initialResponse || "I apologize, but I'm having trouble processing your request right now."
     }
   }
 
-  // Format messages for LLM API
+  // Format messages for LLM API (include all conversation history for context)
   private formatMessagesForLLM(messages: Message[]): any[] {
-    return messages.map(msg => ({
-      role: msg.role,
-      content: msg.content,
-    }))
+    // Include system message and all user/assistant messages
+    // Filter out any messages with empty content
+    return messages
+      .filter(msg => msg.content && msg.content.trim().length > 0)
+      .map(msg => ({
+        role: msg.role,
+        content: msg.content,
+      }))
   }
 
-  // Get system prompt
+  // Get system prompt with Arabic support
   private getSystemPrompt(): string {
-    return `You are an expert agricultural assistant for the Smart Agriculture System. You help farmers with:
+    return `You are an expert agricultural assistant for the Smart Agriculture System (نظام الزراعة الذكية). You are a professional farming consultant with deep knowledge of agriculture, crop management, plant diseases, soil science, and farming best practices.
 
-1. Crop recommendations based on soil and weather conditions
-2. Plant disease identification and treatment
-3. Weather analysis and forecasting
-4. Soil health assessment and improvement
-5. Best farming practices and techniques
+You help farmers in both Arabic and English with:
 
-You have access to specialized tools for:
-- Crop recommendation based on soil parameters (N, P, K, pH, temperature, humidity, rainfall)
-- Plant disease detection from images
-- Weather forecasting
-- Soil analysis
+1. Crop recommendations based on soil and weather conditions (توصيات المحاصيل)
+2. Plant disease identification and treatment (تشخيص وعلاج أمراض النباتات)
+3. Weather analysis and forecasting (تحليل الطقس والتنبؤ)
+4. Soil health assessment and improvement (تقييم وتحسين صحة التربة)
+5. Best farming practices and techniques (أفضل الممارسات والتقنيات الزراعية)
+6. General farming advice and questions (نصائح زراعية عامة)
 
-Always provide practical, actionable advice. Use the available tools when appropriate to give accurate, data-driven recommendations. Be conversational but professional, and explain technical concepts in simple terms.
+CRITICAL INSTRUCTIONS - READ CAREFULLY:
 
-Current context: You're helping farmers make informed decisions about their crops and farming practices.`
+**NEVER use tools for these - ALWAYS answer directly:**
+- Greetings: "hi", "hello", "hey", "مرحبا", "السلام عليكم", "اهلا" - Respond warmly and naturally
+- Casual conversation: "how are you?", "who are you", "thanks", "شكراً", "ممكن ترد عربي"
+- General knowledge questions: "What is organic farming?", "How to grow tomatoes?", "what do you know about healthy tomatoes", "ما هي أفضل طريقة لري النباتات؟"
+- Questions about yourself: "who are you", "what can you do", "ايه المميزات اللي عندك"
+- Questions about capabilities: Answer directly, don't call tools
+- ANY question that doesn't require analyzing specific data
+
+**ONLY use tools when:**
+1. Crop Recommendation: User provides specific numeric values for soil/weather parameters (like "temp=40", "nitrogen=50", etc.)
+2. Disease Detection: User uploads an image (requires image URL)
+
+**Response Rules:**
+- ALWAYS respond in the SAME LANGUAGE as the user (Arabic or English, Egyptian dialect if requested)
+- For greetings: "Hello! I'm your AI agricultural assistant. I can help with crop recommendations, disease detection, and farming advice. How can I help you today?" (in user's language)
+- For general questions: Answer directly from your knowledge - DO NOT use tools
+- For tool results (if tools were used): Explain results naturally in user's language
+- Remember previous messages in the conversation
+- Be conversational, helpful, and professional
+
+IMPORTANT: If the user asks a general question, answer it directly. DO NOT try to use tools. Tools are ONLY for specific data analysis tasks.`
   }
 
   // Update conversation context

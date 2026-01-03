@@ -119,7 +119,7 @@ export default function DiseaseDetectionPage() {
                     </div>
                     {result.source && (
                       <div className="text-xs text-muted-foreground">
-                        Source: {result.source === 'mcb_backend' ? 'AI Model' : 'Fallback'}
+                        Source: {result.source === 'local_pipeline' ? 'AI Model' : result.source === 'fallback' ? 'Fallback' : 'Local Pipeline'}
                       </div>
                     )}
                   </div>

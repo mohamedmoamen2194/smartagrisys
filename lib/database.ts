@@ -82,31 +82,40 @@ export async function createUser(userData: {
 }
 
 export async function getUserByEmail(email: string) {
-  const user = await prisma.user.findUnique({
-    where: {
-      email,
-      isActive: true,
-    },
-  })
-  return user
+  try {
+    const user = await prisma.user.findUnique({
+      where: {
+        email,
+      },
+    })
+    // Filter by isActive in memory to avoid Prisma query issues
+    return user && user.isActive ? user : null
+  } catch (error) {
+    console.error("Error getting user by email:", error)
+    throw error
+  }
 }
 
 export async function getUserWithProfile(userId: string) {
-  const user = await prisma.user.findUnique({
-    where: {
-      id: userId,
-      isActive: true,
-    },
-    include: {
-      farmer: true,
-      customer: true,
-    },
-  })
+  try {
+    const user = await prisma.user.findUnique({
+      where: {
+        id: userId,
+      },
+      include: {
+        farmer: true,
+        customer: true,
+      },
+    })
 
-  if (!user) return null
+    if (!user || !user.isActive) return null
 
-  const profile = user.role === "FARMER" ? user.farmer : user.customer
-  return { user, profile }
+    const profile = user.role === "FARMER" ? user.farmer : user.customer
+    return { user, profile }
+  } catch (error) {
+    console.error("Error getting user with profile:", error)
+    throw error
+  }
 }
 
 export async function updateFarmerProfile(

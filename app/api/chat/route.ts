@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 
+const AI_BACKEND_URL = process.env.AI_BACKEND_URL || "http://localhost:8000"
+
 export async function POST(request: NextRequest) {
   try {
     const { message, conversationId, userId } = await request.json()
@@ -8,41 +10,29 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Message is required" }, { status: 400 })
     }
 
-    // Generate conversation ID if not provided
-    const finalConversationId = conversationId || `conv-${Date.now()}`
-
-    // Use our MCB API for processing
-    const mcbResponse = await fetch(`${request.nextUrl.origin}/api/mcb`, {
-      method: 'POST',
+    // Call Python LLM orchestrator service
+    const response = await fetch(`${AI_BACKEND_URL}/chat`, {
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        action: 'chat',
-        message: message,
-        user_type: 'farmer',
-        user_id: userId || 'user_' + Date.now(),
-        session_id: finalConversationId
-      })
+        message,
+        conversationId: conversationId || undefined,
+      }),
     })
 
-    if (!mcbResponse.ok) {
-      throw new Error('MCB API failed')
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ detail: "Unknown error" }))
+      console.error("Python LLM service error:", errorData)
+      return NextResponse.json(
+        { error: errorData.detail || "Failed to process message" },
+        { status: response.status }
+      )
     }
 
-    const mcbData = await mcbResponse.json()
-    
-    // Extract the response from MCB format
-    const responseContent = mcbData.result?.response || mcbData.analysis?.response || "I'm here to help with your agricultural questions!"
-
-    return NextResponse.json({
-      message: {
-        content: responseContent,
-        role: 'assistant',
-        timestamp: new Date()
-      },
-      conversationId: finalConversationId,
-    })
+    const data = await response.json()
+    return NextResponse.json(data)
   } catch (error) {
     console.error("Chat API error:", error)
     return NextResponse.json(

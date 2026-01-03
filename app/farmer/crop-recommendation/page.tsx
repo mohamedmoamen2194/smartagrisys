@@ -236,7 +236,7 @@ export default function CropRecommendationPage() {
                 </div>
                 {result.source && (
                   <div className="text-xs text-muted-foreground">
-                    Source: {result.source === 'mcb_backend' ? 'AI Model' : 'Fallback'}
+                    Source: {result.source === 'local_model' ? 'AI Model' : result.source === 'fallback' ? 'Fallback' : 'Local Pipeline'}
                   </div>
                 )}
               </div>
