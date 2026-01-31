@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -34,6 +34,15 @@ export default function StorePage() {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [isLoggedIn, setIsLoggedIn] = useState(false)
+
+  const currencyFormatter = useMemo(() => {
+    const formatterLocale = locale === "ar" ? "ar-EG" : "en-EG"
+    return new Intl.NumberFormat(formatterLocale, {
+      style: "currency",
+      currency: "EGP",
+      maximumFractionDigits: 2,
+    })
+  }, [locale])
 
   useEffect(() => {
     // Check if user is logged in
@@ -189,7 +198,7 @@ export default function StorePage() {
                     <CardContent className="pb-2">
                       <div className="flex items-center justify-between">
                         <div>
-                          <div className="text-2xl font-bold">${product.price}</div>
+                          <div className="text-2xl font-bold">{currencyFormatter.format(product.price)}</div>
                           <div className="text-sm text-muted-foreground">{t("store.per")} {product.unit}</div>
                         </div>
                         <div className="text-right">

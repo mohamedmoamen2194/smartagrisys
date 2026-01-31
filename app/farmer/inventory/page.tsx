@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState, ChangeEvent } from "react"
+import { useEffect, useMemo, useState, ChangeEvent } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -428,6 +428,15 @@ export default function InventoryPage() {
   const [error, setError] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState("")
 
+  const currencyFormatter = useMemo(() => {
+    const formatterLocale = locale === "ar" ? "ar-EG" : "en-EG"
+    return new Intl.NumberFormat(formatterLocale, {
+      style: "currency",
+      currency: "EGP",
+      maximumFractionDigits: 2,
+    })
+  }, [locale])
+
   const fetchInventory = async () => {
     try {
       setIsLoading(true)
@@ -682,7 +691,7 @@ export default function InventoryPage() {
                       <TableCell className="text-right">
                         {item.quantity - item.reservedQty} {item.product.unit}
                       </TableCell>
-                      <TableCell className="text-right">${item.product.price}</TableCell>
+                      <TableCell className="text-right">{currencyFormatter.format(item.product.price)}</TableCell>
                       <TableCell>
                         <Badge
                           className={

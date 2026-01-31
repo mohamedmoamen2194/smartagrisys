@@ -3,6 +3,8 @@ import { prisma } from '@/lib/database';
 import { headers } from 'next/headers';
 import { put } from '@vercel/blob';
 
+export const runtime = 'nodejs';
+
 async function getUserFromRequest() {
   try {
     const headersList = await headers();
@@ -57,6 +59,18 @@ export async function POST(
     const formData = await request.formData();
     const files = formData.getAll('images') as File[];
 
+    const blobToken = process.env.BLOB_READ_WRITE_TOKEN;
+    if (!blobToken) {
+      console.error('Vercel Blob token is not configured. Set BLOB_READ_WRITE_TOKEN environment variable.');
+      return NextResponse.json(
+        {
+          error: 'Blob storage not configured',
+          details: 'Set the BLOB_READ_WRITE_TOKEN environment variable or provide a token when calling the API.',
+        },
+        { status: 500 }
+      );
+    }
+
     if (!files || files.length === 0) {
       return NextResponse.json({ error: 'No images provided' }, { status: 400 });
     }
@@ -79,6 +93,7 @@ export async function POST(
       // Upload file to Vercel Blob storage (publicly accessible)
       const blob = await put(`products/${filename}`, file, {
         access: 'public',
+        token: blobToken,
       });
 
       // Save image record to database using the Blob URL
