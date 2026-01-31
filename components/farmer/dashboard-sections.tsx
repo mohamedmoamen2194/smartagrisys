@@ -1,6 +1,6 @@
 "use client"
 
-import { ReactNode, useMemo } from "react"
+import { useMemo } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
@@ -10,6 +10,7 @@ import { Leaf, AlertCircle, TrendingUp, BarChart3, Activity } from "lucide-react
 import { DashboardChart } from "@/components/dashboard-chart"
 import { RecentOrders } from "@/components/recent-orders"
 import { FarmVisualization } from "@/components/farm/farm-visualization"
+import { WeatherOverview } from "@/components/weather/weather-overview"
 
 export type DashboardStats = {
   totalRevenue: number;
@@ -27,9 +28,17 @@ type FarmerDashboardSectionsProps = {
   error?: string | null
   onRefresh?: () => void
   locale?: "en" | "ar"
+  defaultLocation?: string
 }
 
-export function FarmerDashboardSections({ stats, loading, error, onRefresh, locale = "en" }: FarmerDashboardSectionsProps) {
+export function FarmerDashboardSections({ stats, loading, error, onRefresh, locale = "en", defaultLocation = "Cairo" }: FarmerDashboardSectionsProps) {
+  const activeLocation = useMemo(() => {
+    if (typeof defaultLocation === "string" && defaultLocation.trim().length > 0) {
+      return defaultLocation.trim()
+    }
+    return "Cairo"
+  }, [defaultLocation])
+
   const t = useMemo(() => {
     const en = {
       farms: "My Farms",
@@ -232,6 +241,10 @@ export function FarmerDashboardSections({ stats, loading, error, onRefresh, loca
                 <RecentOrders />
               </CardContent>
             </Card>
+          </div>
+
+          <div className="mt-6">
+            <WeatherOverview defaultLocation={activeLocation} />
           </div>
         </TabsContent>
       </Tabs>

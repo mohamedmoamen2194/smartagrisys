@@ -32,6 +32,7 @@ export default function FarmerDashboardPage() {
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [farmLocation, setFarmLocation] = useState("Cairo");
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -40,6 +41,18 @@ export default function FarmerDashboardPage() {
         if (!user) {
           setError('User not authenticated');
           return;
+        }
+
+        try {
+          const parsedUser = JSON.parse(user);
+          const rawAddress = parsedUser?.profile?.farmAddress ?? parsedUser?.profile?.farmaddress;
+          if (typeof rawAddress === "string" && rawAddress.trim().length > 0) {
+            setFarmLocation(rawAddress.trim());
+          } else {
+            setFarmLocation("Cairo");
+          }
+        } catch {
+          setFarmLocation("Cairo");
         }
 
         const response = await fetch('/api/dashboard/stats', {
@@ -74,6 +87,7 @@ export default function FarmerDashboardPage() {
         error={error}
         onRefresh={() => window.location.reload()}
         locale={locale}
+        defaultLocation={farmLocation}
       />
     </div>
   );
